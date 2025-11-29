@@ -1,0 +1,55 @@
+{% extends "layout/base.html" %}
+
+{% block title %}제작사 관리 - Team13-Phase4{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">제작사 관리</h2>
+        
+        <div class="alert alert-info" role="alert">
+            <strong>참고:</strong> 제작사 관리 기능은 추후 구현 예정입니다.
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">제작사 목록</h5>
+            </div>
+            <div class="card-body">
+                {% if producers %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>제작사 ID</th>
+                                <th>제작사명</th>
+                                <th>제작사 소개</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for producer in producers %}
+                                <tr>
+                                    <td>{{ producer.prodco_id }}</td>
+                                    <td>{{ producer.prodname }}</td>
+                                    <td>{{ producer.prod_info or '-' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning">수정</button>
+                                        <button class="btn btn-sm btn-danger">삭제</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">등록된 제작사가 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">대시보드로 돌아가기</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

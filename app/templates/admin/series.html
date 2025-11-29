@@ -1,0 +1,53 @@
+{% extends "layout/base.html" %}
+
+{% block title %}시리즈 관리 - Team13-Phase4{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">시리즈 관리</h2>
+        
+        <div class="alert alert-info" role="alert">
+            <strong>참고:</strong> 시리즈 관리 기능은 추후 구현 예정입니다.
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">시리즈 목록</h5>
+            </div>
+            <div class="card-body">
+                {% if series_list %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>시리즈 ID</th>
+                                <th>시리즈명</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for series in series_list %}
+                                <tr>
+                                    <td>{{ series.series_id }}</td>
+                                    <td>{{ series.sname }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning">수정</button>
+                                        <button class="btn btn-sm btn-danger">삭제</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">등록된 시리즈가 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">대시보드로 돌아가기</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,27 @@
+{% extends "layout/base.html" %}
+
+{% block title %}콘텐츠 검색 - Team13-Phase4{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">콘텐츠 검색</h2>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('content.search') }}">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" name="search_term" placeholder="콘텐츠 제목을 입력하세요..." required>
+                        <button class="btn btn-primary" type="submit">검색</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3" role="alert">
+            <strong>참고:</strong> 콘텐츠 검색 기능은 추후 구현 예정입니다.
+        </div>
+    </div>
+</div>
+{% endblock %}
+

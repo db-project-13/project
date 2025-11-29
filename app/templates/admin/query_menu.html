@@ -1,0 +1,27 @@
+{% extends "layout/base.html" %}
+
+{% block title %}쿼리 메뉴 - Team13-Phase4{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">선정된 10개 핵심 쿼리</h2>
+        
+        <div class="list-group">
+            {% for query in queries %}
+                <a href="{{ url_for('admin.execute_query', query_id=query.id) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ query.title }}</h5>
+                        <span class="badge bg-primary">Q {{ query.id }}</span>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">대시보드로 돌아가기</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,65 @@
+/* Custom CSS for Team13-Phase4 */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* Navigation bar customization */
+.navbar-brand {
+    font-weight: bold;
+}
+
+/* Card styling */
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Form styling */
+.form-label {
+    font-weight: 500;
+}
+
+/* Alert customization */
+.alert {
+    border-radius: 0.5rem;
+}
+
+/* Table styling */
+.table {
+    margin-bottom: 0;
+}
+
+.table-responsive {
+    border-radius: 0.5rem;
+}
+
+/* Button spacing */
+.btn {
+    margin: 0.25rem;
+}
+
+/* List group customization */
+.list-group-item {
+    transition: background-color 0.2s;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+

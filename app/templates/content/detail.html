@@ -1,0 +1,55 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ content.title }} - Team13-Phase4{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">{{ content.title }}</h2>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">콘텐츠 ID</dt>
+                    <dd class="col-sm-9">{{ content.content_id }}</dd>
+                    
+                    <dt class="col-sm-3">출시일</dt>
+                    <dd class="col-sm-9">{{ content.release_date }}</dd>
+                    
+                    <dt class="col-sm-3">제작사</dt>
+                    <dd class="col-sm-9">{{ content.producer }}</dd>
+                </dl>
+                
+                {% if session.get('user_id') %}
+                    <a href="{{ url_for('content.create_review', content_id=content.content_id) }}" class="btn btn-primary">리뷰 작성</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">로그인 후 리뷰 작성</a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <h3 class="mb-3">리뷰 목록</h3>
+        {% if reviews %}
+            {% for review in reviews %}
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="card-title">{{ review.member_name }}</h5>
+                            <span class="badge bg-primary">평점: {{ review.rating }}/5</span>
+                        </div>
+                        {% if review.comment %}
+                            <p class="card-text">{{ review.comment }}</p>
+                        {% endif %}
+                        <small class="text-muted">좋아요: {{ review.likes }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                아직 등록된 리뷰가 없습니다.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

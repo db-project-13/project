@@ -1,0 +1,55 @@
+{% extends "layout/base.html" %}
+
+{% block title %}콘텐츠 관리 - Team13-Phase4{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">콘텐츠 관리</h2>
+        
+        <div class="alert alert-info" role="alert">
+            <strong>참고:</strong> 콘텐츠 관리 기능은 추후 구현 예정입니다.
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">콘텐츠 목록</h5>
+            </div>
+            <div class="card-body">
+                {% if contents %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>콘텐츠 ID</th>
+                                <th>제목</th>
+                                <th>출시일</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for content in contents %}
+                                <tr>
+                                    <td>{{ content.content_id }}</td>
+                                    <td>{{ content.title }}</td>
+                                    <td>{{ content.release_date }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning">수정</button>
+                                        <button class="btn btn-sm btn-danger">삭제</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">등록된 콘텐츠가 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">대시보드로 돌아가기</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

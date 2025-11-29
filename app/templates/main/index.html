@@ -1,0 +1,98 @@
+{% extends "layout/base.html" %}
+
+{% block title %}홈 - Team13-Phase4{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Team13-Phase4 웹 애플리케이션</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">시스템 상태</h5>
+            </div>
+            <div class="card-body">
+                {% if user_id %}
+                    <p class="mb-2">
+                        <strong>로그인 상태:</strong> 
+                        <span class="text-success">로그인됨</span>
+                    </p>
+                    <p class="mb-2">
+                        <strong>사용자 ID:</strong> {{ user_id }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>권한:</strong> 
+                        {% if is_admin %}
+                            <span class="badge bg-danger">관리자</span>
+                        {% else %}
+                            <span class="badge bg-primary">일반 회원</span>
+                        {% endif %}
+                    </p>
+                {% else %}
+                    <p class="mb-0">
+                        <strong>로그인 상태:</strong> 
+                        <span class="text-muted">비로그인</span>
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">주요 기능</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <a href="{{ url_for('content.search') }}" class="text-decoration-none">
+                                    🔍 콘텐츠 검색 및 리뷰 등록
+                                </a>
+                            </li>
+                            {% if user_id %}
+                                <li class="mb-2">
+                                    <a href="{{ url_for('member.edit_profile') }}" class="text-decoration-none">
+                                        👤 회원정보 수정
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="mb-2">
+                                    <a href="{{ url_for('member.register') }}" class="text-decoration-none">
+                                        📝 회원가입
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {% if is_admin %}
+                                <li class="mb-2">
+                                    <a href="{{ url_for('admin.dashboard') }}" class="text-decoration-none">
+                                        ⚙️ 관리자 기능
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">개발 상태</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">✅ 프로젝트 구조 생성 완료</li>
+                            <li class="mb-2">✅ Blueprint 라우팅 구성 완료</li>
+                            <li class="mb-2">✅ 템플릿 기본 구조 완료</li>
+                            <li class="mb-2">⏳ 데이터베이스 연결 (추후 구현)</li>
+                            <li class="mb-2">⏳ Service/DAO 계층 구현 (추후 구현)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

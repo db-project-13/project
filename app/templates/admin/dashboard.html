@@ -1,0 +1,56 @@
+{% extends "layout/base.html" %}
+
+{% block title %}관리자 대시보드 - Team13-Phase4{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">관리자 대시보드</h2>
+        
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">제작사 관리</h5>
+                        <p class="card-text">제작사 등록, 수정, 삭제</p>
+                        <a href="{{ url_for('admin.manage_producers') }}" class="btn btn-primary">이동</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">콘텐츠 관리</h5>
+                        <p class="card-text">콘텐츠 등록, 수정, 삭제</p>
+                        <a href="{{ url_for('admin.manage_contents') }}" class="btn btn-primary">이동</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">시리즈 관리</h5>
+                        <p class="card-text">시리즈 등록, 수정, 삭제</p>
+                        <a href="{{ url_for('admin.manage_series') }}" class="btn btn-primary">이동</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">쿼리 실행</h5>
+                        <p class="card-text">10개 선정 쿼리 실행 및 결과 조회</p>
+                        <a href="{{ url_for('admin.query_menu') }}" class="btn btn-success">쿼리 메뉴</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

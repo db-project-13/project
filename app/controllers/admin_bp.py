@@ -3,6 +3,8 @@
 """
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from app.utils.decorators import admin_required
+from app.db import db
+import oracledb
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -70,12 +72,39 @@ def manage_contents():
     GET: 콘텐츠 목록 표시
     POST: 콘텐츠 등록/수정/삭제 처리 (추후 AdminService 연동)
     """
+    conn = db.get_db()
+    cursor = conn.cursor()
+
     if request.method == 'POST':
         action = request.form.get('action')
         flash(f'콘텐츠 관리 기능은 추후 구현 예정입니다. (작업: {action})', 'info')
         return redirect(url_for('admin.manage_contents'))
     
-    contents = []
+    try:
+        sql = """
+            SELECT c.ContentID, c.Title, 
+                   TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
+                   c.PID, p.Prodname,
+                   c.SID, s.SName
+            FROM CONTENT c
+            JOIN PRODUCT_CO p ON c.PID = p.ProdcoID
+            LEFT JOIN SERIES s ON c.SID = s.SeriesID
+            ORDER BY c.ContentID DESC
+        """
+        cursor.execute(sql)
+        
+        # 결과를 딕셔너리 리스트로 변환
+        columns = [col[0].lower() for col in cursor.description]
+        cursor.rowfactory = lambda *args: dict(zip(columns, args))
+        
+        contents = cursor.fetchall()
+
+    except Exception as e:
+        flash(f'데이터 조회 중 오류: {str(e)}', 'danger')
+        contents = []
+    finally:
+        cursor.close()
+    
     return render_template('admin/contents.html', contents=contents)
 
 

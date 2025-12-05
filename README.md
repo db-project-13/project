@@ -109,9 +109,9 @@ project/
 ## 🚀 실행 방법
 
 ### 1. 사전 요구사항
-- Python 3.x
+- Python 3.11 이상 (oracledb 요구사항)
 - Oracle Database 19c or 21c 등 (로컬 또는 Docker)
-- Oracle Instant Client (cx_Oracle 사용 시)
+- Oracle Instant Client (oracledb 사용 시, 선택사항 - Thin 모드 사용 가능)
 
 ### 2. 가상 환경 생성 및 활성화
 ```bash

@@ -16,7 +16,7 @@
 | `static` 변수 (세션 관리) | Flask Session | `session['user_id']`, `session['is_admin']` |
 | `Scanner` (콘솔 입력) | HTML Form + Flask Request | `request.form`, `request.args` |
 | `System.out.println()` (콘솔 출력) | Jinja2 템플릿 | HTML 템플릿 렌더링 |
-| 단일 `Connection` | Connection Pool | `cx_Oracle.ConnectionPool` |
+| 단일 `Connection` | Connection Pool | `oracledb.create_pool()` |
 | 트랜잭션 없음 | 명시적 트랜잭션 | `conn.commit()`, `conn.rollback()` |
 
 ---
@@ -46,14 +46,14 @@ team13-phase4/
 **작업 내용**:
 - [x] 프로젝트 폴더 구조 생성 ✅ (2024년 완료)
 - [ ] Python 가상 환경 설정 (`python -m venv venv`)
-- [x] `requirements.txt` 작성 (Flask, cx_Oracle, python-dotenv 등) ✅
+- [x] `requirements.txt` 작성 (Flask, oracledb, python-dotenv 등) ✅
 - [x] `.gitignore` 파일 생성 ✅ (기존 파일 활용)
 - [x] Git 저장소 초기화 ✅ (기존 저장소 활용)
 
 **필요 패키지** (`requirements.txt`):
 ```
 Flask==3.0.0
-cx_Oracle==8.3.0
+oracledb>=2.0.0
 python-dotenv==1.0.0
 Werkzeug==3.0.1
 Jinja2==3.1.2
@@ -64,7 +64,7 @@ Jinja2==3.1.2
 
 **구현 내용**:
 ```python
-import cx_Oracle
+import oracledb
 from contextlib import contextmanager
 
 class Database:
@@ -73,7 +73,7 @@ class Database:
     
     def init_pool(self, dsn, user, password, min=2, max=10):
         """Connection Pool 초기화"""
-        self.pool = cx_Oracle.ConnectionPool(
+        self.pool = oracledb.create_pool(
             user=user,
             password=password,
             dsn=dsn,
@@ -358,7 +358,7 @@ class ReviewService:
         with self.db.transaction():
             try:
                 self.content_dao.insert_review(user_id, content_id, rating, comment)
-            except cx_Oracle.IntegrityError:
+            except oracledb.IntegrityError:
                 raise ValueError("이미 해당 콘텐츠에 리뷰를 등록했습니다.")
 ```
 
@@ -734,7 +734,7 @@ def update_content(self, content_id, updates, version):
 
 ### 백엔드
 - **Flask 3.0**: 웹 프레임워크
-- **cx_Oracle 8.3**: Oracle DB 연결
+- **oracledb 2.0+**: Oracle DB 연결 (Python 3.11 이상 필요)
 - **Python 3.x**: 프로그래밍 언어
 
 ### 프론트엔드

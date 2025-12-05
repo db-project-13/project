@@ -176,7 +176,7 @@
 
 **작업 내용**:
 - [ ] `app/models/database.py` 구현
-  - Connection Pool 초기화 (`cx_Oracle.ConnectionPool`)
+  - Connection Pool 초기화 (`oracledb.create_pool()`)
   - `get_connection()` 컨텍스트 매니저
   - `transaction()` 컨텍스트 매니저 (트랜잭션 관리)
 - [ ] `app/__init__.py`에서 데이터베이스 초기화 연동
@@ -462,7 +462,7 @@ def get_contents_by_theme(theme):
 
 ```python
 # app/models/database.py
-import cx_Oracle
+import oracledb
 from contextlib import contextmanager
 
 class Database:
@@ -471,7 +471,7 @@ class Database:
     
     def init_pool(self, dsn, user, password, min=2, max=10):
         """Connection Pool 초기화"""
-        self.pool = cx_Oracle.ConnectionPool(
+        self.pool = oracledb.create_pool(
             user=user,
             password=password,
             dsn=dsn,
@@ -526,7 +526,7 @@ def register_review(self, user_id, content_id, rating, comment):
                 INSERT INTO RATING (MID, CID, Rating, Comm, Likes)
                 VALUES (:mid, :cid, :rating, :comment, 0)
             """, mid=user_id, cid=content_id, rating=rating, comment=comment)
-        except cx_Oracle.IntegrityError:
+        except oracledb.IntegrityError:
             raise ValueError("이미 해당 콘텐츠에 리뷰를 등록했습니다.")
 ```
 

@@ -9,7 +9,7 @@
 * **유형**: Flask 기반 통합 웹 애플리케이션 (BE: Flask, FE: Jinja2/HTML/CSS/JS)
 * **데이터베이스**: Oracle Database 21c (로컬 구동)
 * **목표**: Phase 3의 필수 기능 탑재 및 **트랜잭션을 활용한 사용자 동시성 제어**를 지원하는 데이터베이스 웹 사이트 구축 및 서비스.
-* **개발 환경**: Python 3.x, Flask, `cx_Oracle` (또는 `python-oracledb`), Jinja2.
+* **개발 환경**: Python 3.11 이상, Flask, `oracledb`, Jinja2.
 
 ---
 
@@ -46,7 +46,7 @@ Flask의 **Blueprint**를 사용하여 기능별 라우팅을 모듈화하고, *
 │   │   ├── review\_service.py        \# 리뷰 등록 및 콘텐츠 검색
 │   │   └── admin\_service.py         \# 콘텐츠/제작사/시리즈 관리
 │   ├── /models                      \# 💾 데이터 접근 객체 (DAO 계층 - Phase 3 DAO 해당)
-│   │   ├── database.py              \# Oracle DB 연결 풀(`cx_Oracle`), 트랜잭션 관리
+│   │   ├── database.py              \# Oracle DB 연결 풀(`oracledb`), 트랜잭션 관리
 │   │   ├── member\_dao.py
 │   │   ├── content\_dao.py
 │   │   └── query\_dao.py             \# 10개 선정 쿼리 실행
@@ -88,7 +88,7 @@ Flask의 **Blueprint**를 사용하여 기능별 라우팅을 모듈화하고, *
 
 * **요구 사항**: 여러 사용자가 동시에 접속할 수 있도록 트랜잭션을 활용한 동시성 제어를 지원해야 합니다.
 * **해결 방법**:
-    1.  **Connection Pool 활용**: `cx_Oracle`을 사용하여 DB Connection Pool을 구성하고, 모든 요청은 풀에서 연결을 얻어와 사용합니다.
+    1.  **Connection Pool 활용**: `oracledb`를 사용하여 DB Connection Pool을 구성하고, 모든 요청은 풀에서 연결을 얻어와 사용합니다.
     2.  **Service 계층 트랜잭션**: `review_service.py` 등 데이터 무결성이 중요한 서비스 메서드에서 **명시적 트랜잭션**을 시작합니다.
     3.  **잠금 메커니즘**: 동시 업데이트 가능성이 있는 작업(예: 리뷰 좋아요 증가)에는 필요에 따라 **비관적 잠금** (`SELECT FOR UPDATE`)을 적용하거나, 데이터 일관성 오류 방지를 위한 적절한 트랜잭션 격리 수준을 설정합니다.
 * **제출**: 해결 방안은 `TeamX-Additional_task1.txt`에 기술합니다.

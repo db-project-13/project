@@ -153,7 +153,7 @@ DB_POOL_MAX=10
 
 ### 4-1. db초기화
 ```bash
-python init_db.py
+python app\init_db.py
 ```
 
 ### 5. 애플리케이션 실행

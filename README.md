@@ -151,6 +151,11 @@ DB_POOL_MAX=10
 
 **주의**: `.env` 파일은 Git에 커밋되지 않습니다 (`.gitignore`에 포함됨). 실제 비밀번호나 민감한 정보를 포함하므로 주의하세요.
 
+### 4-1. db초기화
+```bash
+python app\init_db.py
+```
+
 ### 5. 애플리케이션 실행
 ```bash
 python run.py

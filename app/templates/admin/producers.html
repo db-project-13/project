@@ -1,55 +1,130 @@
 {% extends "layout/base.html" %}
 
-{% block title %}제작사 관리 - Team13-Phase4{% endblock %}
+{% block title %}제작사 관리 - Team13{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h2 class="mb-4">제작사 관리</h2>
-        
-        <div class="alert alert-info" role="alert">
-            <strong>참고:</strong> 제작사 관리 기능은 추후 구현 예정입니다.
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>제작사 관리</h2>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#producerModal" onclick="prepareInsert()">
+                <i class="bi bi-plus-lg"></i> 제작사 등록
+            </button>
         </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
         
-        <div class="card">
-            <div class="card-header">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
                 <h5 class="mb-0">제작사 목록</h5>
             </div>
             <div class="card-body">
                 {% if producers %}
-                    <table class="table table-striped">
-                        <thead>
+                    <table class="table table-hover align-middle">
+                        <thead class="table-dark">
                             <tr>
-                                <th>제작사 ID</th>
+                                <th>ID</th>
                                 <th>제작사명</th>
-                                <th>제작사 소개</th>
-                                <th>작업</th>
+                                <th>소개</th>
+                                <th class="text-center">작업</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for producer in producers %}
+                            {% for p in producers %}
                                 <tr>
-                                    <td>{{ producer.prodco_id }}</td>
-                                    <td>{{ producer.prodname }}</td>
-                                    <td>{{ producer.prod_info or '-' }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning">수정</button>
-                                        <button class="btn btn-sm btn-danger">삭제</button>
+                                    <td>{{ p.prodcoid }}</td>
+                                    <td class="fw-bold">{{ p.prodname }}</td>
+                                    <td>{{ p.prodinfo or '-' }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#producerModal"
+                                                data-id="{{ p.prodcoid }}"
+                                                data-name="{{ p.prodname }}"
+                                                data-info="{{ p.prodinfo or '' }}"
+                                                onclick="setModalData(this)">
+                                            수정
+                                        </button>
+                                        <form action="{{ url_for('admin.manage_producers') }}" method="POST" class="d-inline" onsubmit="return confirm('삭제하시겠습니까?');">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="prod_id" value="{{ p.prodcoid }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">삭제</button>
+                                        </form>
                                     </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 {% else %}
-                    <p class="text-muted">등록된 제작사가 없습니다.</p>
+                    <div class="text-center py-5">
+                        <p class="text-muted">등록된 제작사가 없습니다.</p>
+                    </div>
                 {% endif %}
             </div>
         </div>
-        
-        <div class="mt-3">
-            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">대시보드로 돌아가기</a>
+    </div>
+</div>
+
+<div class="modal fade" id="producerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.manage_producers') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">제작사 등록</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="action" id="formAction" value="insert">
+                    <input type="hidden" name="prod_id" id="prodId">
+
+                    <div class="mb-3">
+                        <label for="prod_name" class="form-label">제작사명 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="prod_name" name="prod_name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="prod_info" class="form-label">소개 (선택)</label>
+                        <textarea class="form-control" id="prod_info" name="prod_info" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
-{% endblock %}
 
+<script>
+    // 등록 버튼 클릭 시 초기화
+    function prepareInsert() {
+        document.getElementById('modalTitle').innerText = '제작사 등록';
+        document.getElementById('formAction').value = 'insert';
+        document.getElementById('prodId').value = '';
+        document.getElementById('prod_name').value = '';
+        document.getElementById('prod_info').value = '';
+    }
+
+    // 수정 버튼 클릭 시 데이터 바인딩 (수정된 함수)
+    function setModalData(button) {
+        document.getElementById('modalTitle').innerText = '제작사 수정';
+        document.getElementById('formAction').value = 'update';
+        
+        // 버튼의 data- 속성에서 값 가져오기
+        var id = button.getAttribute('data-id');
+        var name = button.getAttribute('data-name');
+        var info = button.getAttribute('data-info');
+
+        document.getElementById('prodId').value = id;
+        document.getElementById('prod_name').value = name;
+        document.getElementById('prod_info').value = info;
+    }
+</script>
+{% endblock %}

@@ -36,30 +36,80 @@ def dashboard():
 def manage_producers():
     """
     제작사 관리 페이지
-    
-    GET: 제작사 목록 표시
-    POST: 제작사 등록/수정/삭제 처리 (추후 AdminService 연동)
+    Schema: ProdcoID(PK), Prodname, ProdInfo
     """
+    conn = db.get_db()
+    cursor = conn.cursor()
+
+    # 1. POST 요청 처리
     if request.method == 'POST':
         action = request.form.get('action')
         
-        # TODO: AdminService를 통한 제작사 관리
-        # admin_service = AdminService(admin_dao)
-        # if action == 'insert':
-        #     admin_service.insert_producer(...)
-        # elif action == 'update':
-        #     admin_service.update_producer(...)
-        # elif action == 'delete':
-        #     admin_service.delete_producer(...)
-        
-        flash(f'제작사 관리 기능은 추후 구현 예정입니다. (작업: {action})', 'info')
+        try:
+            if action == 'insert':
+                prod_name = request.form.get('prod_name')
+                prod_info = request.form.get('prod_info')
+                
+                # 시퀀스 PRODUCT_CO_SEQ 사용
+                sql = """
+                    INSERT INTO PRODUCT_CO (ProdcoID, Prodname, ProdInfo)
+                    VALUES (PRODUCT_CO_SEQ.NEXTVAL, :name, :info)
+                """
+                cursor.execute(sql, name=prod_name, info=prod_info)
+                flash('제작사가 추가되었습니다.', 'success')
+
+            elif action == 'update':
+                prod_id = request.form.get('prod_id')
+                prod_name = request.form.get('prod_name')
+                prod_info = request.form.get('prod_info')
+
+                sql = """
+                    UPDATE PRODUCT_CO 
+                    SET Prodname = :name, ProdInfo = :info
+                    WHERE ProdcoID = :pid
+                """
+                cursor.execute(sql, name=prod_name, info=prod_info, pid=prod_id)
+                flash('제작사 정보가 수정되었습니다.', 'success')
+
+            elif action == 'delete':
+                prod_id = request.form.get('prod_id')
+                
+                # 자식 레코드(CONTENT)가 있으면 삭제되지 않을 수 있음 (DB 제약조건에 따름)
+                try:
+                    sql = "DELETE FROM PRODUCT_CO WHERE ProdcoID = :pid"
+                    cursor.execute(sql, pid=prod_id)
+                    flash('제작사가 삭제되었습니다.', 'warning')
+                except oracledb.IntegrityError:
+                    # 참조 무결성 에러 (ORA-02292) 처리
+                    conn.rollback()
+                    flash('이 제작사에 등록된 콘텐츠가 있어 삭제할 수 없습니다.', 'danger')
+                    return redirect(url_for('admin.manage_producers'))
+
+            conn.commit()
+
+        except Exception as e:
+            conn.rollback()
+            flash(f'오류 발생: {str(e)}', 'danger')
+            
         return redirect(url_for('admin.manage_producers'))
-    
-    # TODO: 제작사 목록 조회
-    # admin_dao = AdminDAO(current_app.db)
-    # producers = admin_dao.list_producers()
-    
-    producers = []
+
+    # 2. GET 요청 처리 (목록 조회)
+    try:
+        sql = "SELECT ProdcoID, Prodname, ProdInfo FROM PRODUCT_CO ORDER BY ProdcoID DESC"
+        cursor.execute(sql)
+        
+        # 딕셔너리 변환 (prodcoid, prodname, prodinfo)
+        columns = [col[0].lower() for col in cursor.description]
+        cursor.rowfactory = lambda *args: dict(zip(columns, args))
+        
+        producers = cursor.fetchall()
+        
+    except Exception as e:
+        flash(f'데이터 조회 실패: {str(e)}', 'danger')
+        producers = []
+    finally:
+        cursor.close()
+
     return render_template('admin/producers.html', producers=producers)
 
 
@@ -68,20 +118,80 @@ def manage_producers():
 def manage_contents():
     """
     콘텐츠 관리 페이지
-    
-    GET: 콘텐츠 목록 표시
-    POST: 콘텐츠 등록/수정/삭제 처리 (추후 AdminService 연동)
+    Schema: ContentID, Title, ReleaseDate, PID(FK), SID(FK)
     """
     conn = db.get_db()
     cursor = conn.cursor()
 
+    # 1. POST 요청 처리 (등록/수정/삭제)
     if request.method == 'POST':
         action = request.form.get('action')
-        flash(f'콘텐츠 관리 기능은 추후 구현 예정입니다. (작업: {action})', 'info')
+        
+        try:
+            if action == 'insert':
+                title = request.form.get('title')
+                release_date = request.form.get('release_date')
+                pid = request.form.get('pid') # 필수
+                sid = request.form.get('sid') # 선택 (없으면 None)
+
+                # SID가 빈 문자열이면 None(NULL)으로 처리
+                if not sid:
+                    sid = None
+
+                # 시퀀스 이름은 CONTENT_SEQ라고 가정 (없으면 생성 필요)
+                sql = """
+                    INSERT INTO CONTENT (ContentID, Title, ReleaseDate, PID, SID)
+                    VALUES (CONTENT_SEQ.NEXTVAL, :title, TO_DATE(:r_date, 'YYYY-MM-DD'), :pid, :sid)
+                """
+                cursor.execute(sql, title=title, r_date=release_date, pid=pid, sid=sid)
+                flash('콘텐츠가 성공적으로 등록되었습니다.', 'success')
+
+            elif action == 'update':
+                content_id = request.form.get('content_id')
+                title = request.form.get('title')
+                release_date = request.form.get('release_date')
+                pid = request.form.get('pid')
+                sid = request.form.get('sid')
+
+                if not sid:
+                    sid = None
+
+                sql = """
+                    UPDATE CONTENT 
+                    SET Title = :title, 
+                        ReleaseDate = TO_DATE(:r_date, 'YYYY-MM-DD'),
+                        PID = :pid,
+                        SID = :sid
+                    WHERE ContentID = :cid
+                """
+                cursor.execute(sql, title=title, r_date=release_date, pid=pid, sid=sid, cid=content_id)
+                flash('콘텐츠 정보가 수정되었습니다.', 'success')
+
+            elif action == 'delete':
+                content_id = request.form.get('content_id')
+                
+                # 자식 테이블(TAG_TO, SHOP, RATING)이 있다면 먼저 지워야 할 수도 있음 (CASCADE 설정 여부에 따라 다름)
+                # 제공된 SQL에는 CASCADE CONSTRAINTS로 DROP만 되어 있으므로, 안전하게 삭제 시도
+                sql = "DELETE FROM CONTENT WHERE ContentID = :cid"
+                cursor.execute(sql, cid=content_id)
+                flash('콘텐츠가 삭제되었습니다.', 'warning')
+
+            conn.commit()
+
+        except oracledb.Error as e:
+            conn.rollback()
+            error_obj, = e.args
+            flash(f'DB 오류 발생: {error_obj.message}', 'danger')
+        except Exception as e:
+            conn.rollback()
+            flash(f'오류 발생: {str(e)}', 'danger')
+            
         return redirect(url_for('admin.manage_contents'))
-    
+
+    # 2. GET 요청 처리 (조회)
     try:
-        sql = """
+        # A. 콘텐츠 목록 조회 (제작사명, 시리즈명 조인)
+        sql_list = """
             SELECT c.ContentID, c.Title, 
                    TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
                    c.PID, p.Prodname,
@@ -91,21 +201,32 @@ def manage_contents():
             LEFT JOIN SERIES s ON c.SID = s.SeriesID
             ORDER BY c.ContentID DESC
         """
-        cursor.execute(sql)
-        
-        # 결과를 딕셔너리 리스트로 변환
+        cursor.execute(sql_list)
         columns = [col[0].lower() for col in cursor.description]
         cursor.rowfactory = lambda *args: dict(zip(columns, args))
-        
         contents = cursor.fetchall()
+
+        # B. 제작사 목록 조회 (드롭다운용)
+        cursor.execute("SELECT ProdcoID, Prodname FROM PRODUCT_CO ORDER BY Prodname")
+        # 튜플 리스트 그대로 사용하거나 딕셔너리로 변환
+        producers = [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
+
+        # C. 시리즈 목록 조회 (드롭다운용)
+        cursor.execute("SELECT SeriesID, SName FROM SERIES ORDER BY SName")
+        series_list = [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
 
     except Exception as e:
         flash(f'데이터 조회 중 오류: {str(e)}', 'danger')
         contents = []
+        producers = []
+        series_list = []
     finally:
         cursor.close()
-    
-    return render_template('admin/contents.html', contents=contents)
+
+    return render_template('admin/contents.html', 
+                           contents=contents, 
+                           producers=producers, 
+                           series_list=series_list)
 
 
 @admin_bp.route('/series', methods=['GET', 'POST'])
@@ -113,16 +234,66 @@ def manage_contents():
 def manage_series():
     """
     시리즈 관리 페이지
-    
-    GET: 시리즈 목록 표시
-    POST: 시리즈 등록/수정/삭제 처리 (추후 AdminService 연동)
+    Schema: SeriesID(PK), SName
     """
+    conn = db.get_db()
+    cursor = conn.cursor()
+
     if request.method == 'POST':
         action = request.form.get('action')
-        flash(f'시리즈 관리 기능은 추후 구현 예정입니다. (작업: {action})', 'info')
+        
+        try:
+            if action == 'insert':
+                sname = request.form.get('sname')
+                
+                sql = "INSERT INTO SERIES (SeriesID, SName) VALUES (SERIES_SEQ.NEXTVAL, :name)"
+                cursor.execute(sql, name=sname)
+                flash('시리즈가 추가되었습니다.', 'success')
+
+            elif action == 'update':
+                series_id = request.form.get('series_id')
+                sname = request.form.get('sname')
+
+                sql = "UPDATE SERIES SET SName = :name WHERE SeriesID = :sid"
+                cursor.execute(sql, name=sname, sid=series_id)
+                flash('시리즈 정보가 수정되었습니다.', 'success')
+
+            elif action == 'delete':
+                series_id = request.form.get('series_id')
+                
+                try:
+                    sql = "DELETE FROM SERIES WHERE SeriesID = :sid"
+                    cursor.execute(sql, sid=series_id)
+                    flash('시리즈가 삭제되었습니다.', 'warning')
+                except oracledb.IntegrityError:
+                    conn.rollback()
+                    flash('이 시리즈에 포함된 콘텐츠가 있어 삭제할 수 없습니다.', 'danger')
+                    return redirect(url_for('admin.manage_series'))
+
+            conn.commit()
+
+        except Exception as e:
+            conn.rollback()
+            flash(f'오류 발생: {str(e)}', 'danger')
+            
         return redirect(url_for('admin.manage_series'))
     
-    series_list = []
+    # 목록 조회
+    try:
+        sql = "SELECT SeriesID, SName FROM SERIES ORDER BY SName"
+        cursor.execute(sql)
+        
+        columns = [col[0].lower() for col in cursor.description]
+        cursor.rowfactory = lambda *args: dict(zip(columns, args))
+        
+        series_list = cursor.fetchall()
+        
+    except Exception as e:
+        flash(f'데이터 조회 실패: {str(e)}', 'danger')
+        series_list = []
+    finally:
+        cursor.close()
+
     return render_template('admin/series.html', series_list=series_list)
 
 

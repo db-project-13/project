@@ -3,8 +3,89 @@
 """
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from app.utils.decorators import login_required
+from app.db import db
+import oracledb
 
 content_bp = Blueprint('content', __name__, url_prefix='/content')
+
+
+@content_bp.route('/movies')
+def movies():
+    """
+    영화 목록 페이지
+    """
+    return _get_contents_by_theme('Movie', '영화')
+
+
+@content_bp.route('/games')
+def games():
+    """
+    게임 목록 페이지
+    """
+    return _get_contents_by_theme('Video Game', '게임')
+
+
+@content_bp.route('/books')
+def books():
+    """
+    도서 목록 페이지
+    """
+    return _get_contents_by_theme('Book', '도서')
+
+
+def _get_contents_by_theme(theme_tag, theme_name):
+    """
+    테마별 콘텐츠 목록 조회 헬퍼 함수
+    
+    Args:
+        theme_tag: MediaType 태그 값 ('Movie', 'Video Game', 'Book')
+        theme_name: 테마 이름 (한글)
+    """
+    conn = db.get_db()
+    cursor = conn.cursor()
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+    
+    try:
+        sql_list = """
+            SELECT c.ContentID, c.Title, 
+                   TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
+                   p.Prodname, s.SName,
+                   (SELECT ROUND(AVG(r.Rating), 1) FROM RATING r WHERE r.CID = c.ContentID) as AvgRating,
+                   (SELECT COUNT(*) FROM RATING r WHERE r.CID = c.ContentID) as ReviewCount
+            FROM CONTENT c
+            JOIN PRODUCT_CO p ON c.PID = p.ProdcoID
+            LEFT JOIN SERIES s ON c.SID = s.SeriesID
+            JOIN TAG_TO tt ON c.ContentID = tt.CID
+            JOIN TAG t ON tt.TCode = t.TagCode
+            WHERE t.Category = 'MediaType' AND t.Tag = :theme
+            ORDER BY c.ReleaseDate DESC
+        """
+        cursor.execute(sql_list, theme=theme_tag)
+        columns = [col[0].lower() for col in cursor.description]
+        cursor.rowfactory = lambda *args: dict(zip(columns, args))
+        all_contents = cursor.fetchall()
+        
+        total = len(all_contents)
+        contents = all_contents[offset:offset + per_page]
+        
+    except Exception as e:
+        flash(f'데이터 조회 중 오류 발생: {str(e)}', 'danger')
+        contents = []
+        total = 0
+    finally:
+        cursor.close()
+    
+    return render_template('content/theme_list.html',
+                         theme_name=theme_name,
+                         contents=contents,
+                         page=page,
+                         per_page=per_page,
+                         total=total,
+                         has_prev=page > 1,
+                         has_next=offset + per_page < total)
 
 
 @content_bp.route('/search', methods=['GET', 'POST'])
@@ -45,46 +126,84 @@ def create_review(content_id):
         content_id: 콘텐츠 ID
     
     GET: 리뷰 등록 폼 표시
-    POST: 리뷰 등록 처리 (추후 ReviewService 연동)
+    POST: 리뷰 등록 처리
     """
     user_id = session.get('user_id')
+    conn = db.get_db()
+    cursor = conn.cursor()
+    
+    # 콘텐츠 정보 조회
+    try:
+        sql_content = """
+            SELECT c.ContentID, c.Title
+            FROM CONTENT c
+            WHERE c.ContentID = :cid
+        """
+        cursor.execute(sql_content, cid=content_id)
+        content_row = cursor.fetchone()
+        
+        if not content_row:
+            flash('존재하지 않는 콘텐츠입니다.', 'danger')
+            return redirect(url_for('main.index'))
+        
+        content = {
+            'content_id': content_row[0],
+            'title': content_row[1]
+        }
+        
+        # 이미 리뷰가 있는지 확인
+        sql_check = "SELECT COUNT(*) FROM RATING WHERE MID = :mid AND CID = :cid"
+        cursor.execute(sql_check, mid=user_id, cid=content_id)
+        if cursor.fetchone()[0] > 0:
+            flash('이미 리뷰를 작성하셨습니다. 수정 기능을 이용해주세요.', 'warning')
+            return redirect(url_for('content.detail', content_id=content_id))
+        
+    except Exception as e:
+        flash(f'콘텐츠 조회 중 오류 발생: {str(e)}', 'danger')
+        return redirect(url_for('main.index'))
+    finally:
+        cursor.close()
     
     if request.method == 'POST':
+        conn = db.get_db()
+        cursor = conn.cursor()
+        
         try:
             rating = int(request.form.get('rating', 0))
             comment = request.form.get('comment', '').strip()
             
             if rating < 1 or rating > 5:
                 flash('평점은 1-5 사이의 값이어야 합니다.', 'error')
-                return redirect(url_for('content.create_review', content_id=content_id))
+                return render_template('content/review_form.html', content=content, action='create')
             
-            # TODO: ReviewService를 통한 리뷰 등록
-            # review_service = ReviewService(content_dao)
-            # try:
-            #     review_service.register_review(user_id, content_id, rating, comment)
-            #     flash('리뷰가 성공적으로 등록되었습니다.', 'success')
-            #     return redirect(url_for('content.detail', content_id=content_id))
-            # except ValueError as e:
-            #     flash(str(e), 'error')
+            # 리뷰 등록
+            sql_insert = """
+                INSERT INTO RATING (MID, CID, Rating, Comm, Likes)
+                VALUES (:mid, :cid, :rating, :comm, 0)
+            """
+            cursor.execute(sql_insert, 
+                         mid=user_id, 
+                         cid=content_id, 
+                         rating=rating, 
+                         comm=comment if comment else None)
+            conn.commit()
             
-            # 임시: 성공 메시지
-            flash(f'리뷰 등록 기능은 추후 구현 예정입니다. (콘텐츠 ID: {content_id}, 평점: {rating})', 'info')
-            return redirect(url_for('content.create_review', content_id=content_id))
+            flash('리뷰가 성공적으로 등록되었습니다.', 'success')
+            return redirect(url_for('content.detail', content_id=content_id))
             
+        except oracledb.IntegrityError:
+            conn.rollback()
+            flash('이미 리뷰를 작성하셨습니다. 수정 기능을 이용해주세요.', 'warning')
+            return redirect(url_for('content.detail', content_id=content_id))
         except ValueError:
             flash('평점은 숫자로 입력해주세요.', 'error')
+        except Exception as e:
+            conn.rollback()
+            flash(f'리뷰 등록 중 오류 발생: {str(e)}', 'danger')
+        finally:
+            cursor.close()
     
-    # TODO: 콘텐츠 정보 조회
-    # content_dao = ContentDAO(current_app.db)
-    # content = content_dao.find_by_id(content_id)
-    
-    # 임시 데이터
-    content = {
-        'content_id': content_id,
-        'title': f'콘텐츠 {content_id} (임시)'
-    }
-    
-    return render_template('content/review_form.html', content=content)
+    return render_template('content/review_form.html', content=content, action='create')
 
 
 @content_bp.route('/<int:content_id>')
@@ -98,19 +217,251 @@ def detail(content_id):
     Returns:
         콘텐츠 상세 페이지 템플릿
     """
-    # TODO: 콘텐츠 정보 및 리뷰 목록 조회
-    # content_dao = ContentDAO(current_app.db)
-    # content = content_dao.find_by_id(content_id)
-    # reviews = content_dao.get_reviews_by_content_id(content_id)
+    conn = db.get_db()
+    cursor = conn.cursor()
+    user_id = session.get('user_id')
     
-    # 임시 데이터
-    content = {
-        'content_id': content_id,
-        'title': f'콘텐츠 {content_id} (임시)',
-        'release_date': '2024-01-01',
-        'producer': '임시 제작사'
-    }
-    reviews = []
+    try:
+        # 1. 콘텐츠 기본 정보 조회
+        sql_content = """
+            SELECT c.ContentID, c.Title, 
+                   TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
+                   p.ProdcoID, p.Prodname, p.ProdInfo,
+                   s.SeriesID, s.SName
+            FROM CONTENT c
+            JOIN PRODUCT_CO p ON c.PID = p.ProdcoID
+            LEFT JOIN SERIES s ON c.SID = s.SeriesID
+            WHERE c.ContentID = :cid
+        """
+        cursor.execute(sql_content, cid=content_id)
+        content_row = cursor.fetchone()
+        
+        if not content_row:
+            flash('존재하지 않는 콘텐츠입니다.', 'danger')
+            return redirect(url_for('main.index'))
+        
+        columns = [col[0].lower() for col in cursor.description]
+        content = dict(zip(columns, content_row))
+        
+        # 2. 태그 정보 조회 (카테고리별)
+        sql_tags = """
+            SELECT t.Category, LISTAGG(t.Tag, ', ') WITHIN GROUP (ORDER BY t.Tag) as Tags
+            FROM TAG t
+            JOIN TAG_TO tt ON t.TagCode = tt.TCode
+            WHERE tt.CID = :cid
+            GROUP BY t.Category
+        """
+        cursor.execute(sql_tags, cid=content_id)
+        tags_by_category = {}
+        for row in cursor.fetchall():
+            tags_by_category[row[0]] = row[1]
+        
+        # 3. 구매처 정보 조회
+        sql_shops = "SELECT MainURL, SubURL FROM SHOP WHERE CID = :cid ORDER BY MainURL"
+        cursor.execute(sql_shops, cid=content_id)
+        shops = []
+        for row in cursor.fetchall():
+            shops.append({'main_url': row[0], 'sub_url': row[1]})
+        
+        # 4. 리뷰 통계 조회
+        sql_stats = """
+            SELECT ROUND(AVG(Rating), 1) as AvgRating, 
+                   COUNT(*) as ReviewCount,
+                   COUNT(CASE WHEN Rating = 5 THEN 1 END) as Rating5,
+                   COUNT(CASE WHEN Rating = 4 THEN 1 END) as Rating4,
+                   COUNT(CASE WHEN Rating = 3 THEN 1 END) as Rating3,
+                   COUNT(CASE WHEN Rating = 2 THEN 1 END) as Rating2,
+                   COUNT(CASE WHEN Rating = 1 THEN 1 END) as Rating1
+            FROM RATING
+            WHERE CID = :cid
+        """
+        cursor.execute(sql_stats, cid=content_id)
+        stats_row = cursor.fetchone()
+        stats_columns = [col[0].lower() for col in cursor.description]
+        stats = dict(zip(stats_columns, stats_row)) if stats_row else {
+            'avgrating': None, 'reviewcount': 0, 'rating5': 0, 'rating4': 0, 
+            'rating3': 0, 'rating2': 0, 'rating1': 0
+        }
+        
+        # 5. 리뷰 목록 조회
+        sql_reviews = """
+            SELECT r.Rating, r.Comm, r.Likes, 
+                   m.Name as MemberName, m.ID as MemberID
+            FROM RATING r
+            JOIN MEMBER m ON r.MID = m.ID
+            WHERE r.CID = :cid
+            ORDER BY r.Likes DESC NULLS LAST, r.Rating DESC, m.ID
+        """
+        cursor.execute(sql_reviews, cid=content_id)
+        columns_review = [col[0].lower() for col in cursor.description]
+        cursor.rowfactory = lambda *args: dict(zip(columns_review, args))
+        reviews = cursor.fetchall()
+        
+        # 사용자가 작성한 리뷰 확인
+        user_review = None
+        if user_id:
+            for review in reviews:
+                if review['memberid'] == user_id:
+                    user_review = review
+                    break
+        
+    except Exception as e:
+        flash(f'데이터 조회 중 오류 발생: {str(e)}', 'danger')
+        content = None
+        tags_by_category = {}
+        shops = []
+        stats = {'avgrating': None, 'reviewcount': 0}
+        reviews = []
+        user_review = None
+    finally:
+        cursor.close()
     
-    return render_template('content/detail.html', content=content, reviews=reviews)
+    if not content:
+        return redirect(url_for('main.index'))
+    
+    return render_template('content/detail.html', 
+                         content=content, 
+                         tags_by_category=tags_by_category,
+                         shops=shops,
+                         stats=stats,
+                         reviews=reviews,
+                         user_review=user_review,
+                         user_id=user_id)
+
+
+@content_bp.route('/<int:content_id>/review/edit', methods=['GET', 'POST'])
+@login_required
+def update_review(content_id):
+    """
+    리뷰 수정 페이지 및 수정 처리
+    
+    Args:
+        content_id: 콘텐츠 ID
+    
+    GET: 리뷰 수정 폼 표시
+    POST: 리뷰 수정 처리
+    """
+    user_id = session.get('user_id')
+    conn = db.get_db()
+    cursor = conn.cursor()
+    
+    # 콘텐츠 정보 조회
+    try:
+        sql_content = """
+            SELECT c.ContentID, c.Title
+            FROM CONTENT c
+            WHERE c.ContentID = :cid
+        """
+        cursor.execute(sql_content, cid=content_id)
+        content_row = cursor.fetchone()
+        
+        if not content_row:
+            flash('존재하지 않는 콘텐츠입니다.', 'danger')
+            return redirect(url_for('main.index'))
+        
+        content = {
+            'content_id': content_row[0],
+            'title': content_row[1]
+        }
+        
+        # 기존 리뷰 조회
+        sql_review = """
+            SELECT Rating, Comm
+            FROM RATING
+            WHERE MID = :mid AND CID = :cid
+        """
+        cursor.execute(sql_review, mid=user_id, cid=content_id)
+        review_row = cursor.fetchone()
+        
+        if not review_row:
+            flash('작성한 리뷰가 없습니다.', 'warning')
+            return redirect(url_for('content.detail', content_id=content_id))
+        
+        review = {
+            'rating': review_row[0],
+            'comment': review_row[1] if review_row[1] else ''
+        }
+        
+    except Exception as e:
+        flash(f'데이터 조회 중 오류 발생: {str(e)}', 'danger')
+        return redirect(url_for('content.detail', content_id=content_id))
+    finally:
+        cursor.close()
+    
+    if request.method == 'POST':
+        conn = db.get_db()
+        cursor = conn.cursor()
+        
+        try:
+            rating = int(request.form.get('rating', 0))
+            comment = request.form.get('comment', '').strip()
+            
+            if rating < 1 or rating > 5:
+                flash('평점은 1-5 사이의 값이어야 합니다.', 'error')
+                return render_template('content/review_form.html', 
+                                    content=content, 
+                                    review=review, 
+                                    action='update')
+            
+            # 리뷰 수정
+            sql_update = """
+                UPDATE RATING 
+                SET Rating = :rating, Comm = :comm
+                WHERE MID = :mid AND CID = :cid
+            """
+            cursor.execute(sql_update, 
+                         rating=rating, 
+                         comm=comment if comment else None,
+                         mid=user_id, 
+                         cid=content_id)
+            conn.commit()
+            
+            flash('리뷰가 성공적으로 수정되었습니다.', 'success')
+            return redirect(url_for('content.detail', content_id=content_id))
+            
+        except ValueError:
+            flash('평점은 숫자로 입력해주세요.', 'error')
+        except Exception as e:
+            conn.rollback()
+            flash(f'리뷰 수정 중 오류 발생: {str(e)}', 'danger')
+        finally:
+            cursor.close()
+    
+    return render_template('content/review_form.html', 
+                         content=content, 
+                         review=review, 
+                         action='update')
+
+
+@content_bp.route('/<int:content_id>/review/delete', methods=['POST'])
+@login_required
+def delete_review(content_id):
+    """
+    리뷰 삭제 처리
+    
+    Args:
+        content_id: 콘텐츠 ID
+    """
+    user_id = session.get('user_id')
+    conn = db.get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # 리뷰 삭제
+        sql_delete = "DELETE FROM RATING WHERE MID = :mid AND CID = :cid"
+        cursor.execute(sql_delete, mid=user_id, cid=content_id)
+        
+        if cursor.rowcount == 0:
+            flash('삭제할 리뷰가 없습니다.', 'warning')
+        else:
+            conn.commit()
+            flash('리뷰가 성공적으로 삭제되었습니다.', 'success')
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'리뷰 삭제 중 오류 발생: {str(e)}', 'danger')
+    finally:
+        cursor.close()
+    
+    return redirect(url_for('content.detail', content_id=content_id))
 

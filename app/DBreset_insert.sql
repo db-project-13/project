@@ -1,5 +1,3 @@
-SET DEFINE OFF
-
 INSERT INTO MEMBER (ID, Password, Name, Address, Sex, Birthday, IsAdmin) VALUES ('1', 'pw1', '김민준', '서울시 강남구', 'M', TO_DATE('1990-01-01', 'YYYY-MM-DD'), 'T');
 INSERT INTO MEMBER (ID, Password, Name, Address, Sex, Birthday) VALUES ('2', 'pw2', '이서연', '부산시 해운대구', 'F', TO_DATE('1991-02-03', 'YYYY-MM-DD'));
 INSERT INTO MEMBER (ID, Password, Name, Address, Sex, Birthday) VALUES ('3', 'pw3', '박서준', '대구시 수성구', 'M', TO_DATE('1992-03-05', 'YYYY-MM-DD'));
@@ -1860,7 +1858,6 @@ INSERT INTO SHOP VALUES ('https://product.kyobobook.co.kr', '/detail/S0000017438
 INSERT INTO SHOP VALUES ('https://search.kyobobook.co.kr', '/search?keyword=%EB%94%A5%EB%9F%AC%EB%8B%9D', 1008);
 INSERT INTO SHOP VALUES ('https://product.kyobobook.co.kr', '/detail/S000001399869', 1009);
 INSERT INTO SHOP VALUES ('https://product.kyobobook.co.kr', '/detail/S000201932024', 1010);
--- INSERT INTO SHOP VALUES ('https://product.kyobobook.co.kr', '/detail/S000201932024', 1011);
 INSERT INTO SHOP VALUES ('https://product.kyobobook.co.kr', '/detail/S000001290624', 1012);
 INSERT INTO SHOP VALUES ('https://product.kyobobook.co.kr', '/detail/S000001290589', 1013);
 INSERT INTO SHOP VALUES ('https://product.kyobobook.co.kr', '/detail/S000000620181', 1014);
@@ -1898,7 +1895,6 @@ INSERT INTO SHOP (MainURL, SubURL, CID) VALUES ('https://store.playstation.com',
 INSERT INTO SHOP (MainURL, SubURL, CID) VALUES ('https://www.xbox.com', '/ko-KR/games/store/dark-souls-iii/BW2XDRNSCCPZ', 304);
 INSERT INTO SHOP (MainURL, SubURL, CID) VALUES ('https://www.ea.com', '/games/fifa/fifa-23', 305);
 INSERT INTO SHOP (MainURL, SubURL, CID) VALUES ('https://store.steampowered.com', '/app/1811260/EA_SPORTS_FIFA_23/', 305);
-INSERT INTO SHOP (MainURL, SubURL, CID) VALUES ('https://www.ea.com', '/games/fifa/fifa-23', 305);
 INSERT INTO SHOP (MainURL, SubURL, CID) VALUES ('https://battle.net', '/store/product/diablo-iv', 306);
 INSERT INTO SHOP (MainURL, SubURL, CID) VALUES ('https://battle.net', '/store/product/starcraft-ii', 307);
 INSERT INTO SHOP (MainURL, SubURL, CID) VALUES ('https://store.playstation.com', '/ko-kr/concept/229893', 308);

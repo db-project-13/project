@@ -345,8 +345,7 @@ def manage_contents():
 
     # 2. GET 요청 처리 (조회)
     try:
-        # A. 콘텐츠 목록 + 태그 목록(LISTAGG) 조회
-        # Oracle 11g R2 이상에서 LISTAGG 사용 가능
+        # A. 콘텐츠 목록 + 태그 목록 조회 (기존 코드 유지)
         sql_list = """
             SELECT c.ContentID, c.Title, 
                    TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
@@ -368,27 +367,36 @@ def manage_contents():
         cursor.rowfactory = lambda *args: dict(zip(columns, args))
         contents = cursor.fetchall()
 
-        # B. 제작사 목록 (드롭다운)
+        # B. 제작사 & 시리즈 목록 (기존 코드 유지)
         cursor.execute("SELECT ProdcoID, Prodname FROM PRODUCT_CO ORDER BY Prodname")
         producers = [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
-
-        # C. 시리즈 목록 (드롭다운)
         cursor.execute("SELECT SeriesID, SName FROM SERIES ORDER BY SName")
         series_list = [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
         
-        # D. 전체 태그 목록 (모달 체크박스용)
+        # C. 태그 목록 (기존 코드 유지)
         cursor.execute("SELECT TagCode, Category, Tag FROM TAG ORDER BY Category, Tag")
         all_tags = []
         for row in cursor.fetchall():
             all_tags.append({'code': row[0], 'category': row[1], 'name': row[2]})
             
-        # 태그를 카테고리별로 그룹화 (Python에서 처리)
         tags_by_category = {}
         for tag in all_tags:
             cat = tag['category']
-            if cat not in tags_by_category:
-                tags_by_category[cat] = []
+            if cat not in tags_by_category: tags_by_category[cat] = []
             tags_by_category[cat].append(tag)
+            
+        # D. 모든 구매처(SHOP) 정보 조회 및 매핑
+        # 콘텐츠별로 어떤 구매처가 있는지 미리 다 가져옵니다.
+        sql_shops = "SELECT CID, MainURL, SubURL FROM SHOP ORDER BY CID"
+        cursor.execute(sql_shops)
+        
+        # 콘텐츠 ID를 키로 하는 딕셔너리로 변환
+        shops_by_content = {}
+        for row in cursor.fetchall():
+            cid, main_url, sub_url = row
+            if cid not in shops_by_content:
+                shops_by_content[cid] = []
+            shops_by_content[cid].append({'main': main_url, 'sub': sub_url})
 
     except Exception as e:
         flash(f'데이터 조회 중 오류: {str(e)}', 'danger')
@@ -396,6 +404,7 @@ def manage_contents():
         producers = []
         series_list = []
         tags_by_category = {}
+        shops_by_content = {}
     finally:
         cursor.close()
 
@@ -403,8 +412,50 @@ def manage_contents():
                            contents=contents, 
                            producers=producers, 
                            series_list=series_list,
-                           tags_by_category=tags_by_category)
+                           tags_by_category=tags_by_category,
+                           shops_by_content=shops_by_content) # [NEW] 템플릿으로 전달
 
+# 구매처(SHOP) 추가/삭제 처리 라우트
+@admin_bp.route('/contents/shops', methods=['POST'])
+@admin_required
+def manage_shops():
+    conn = db.get_db()
+    cursor = conn.cursor()
+    
+    action = request.form.get('action')
+    content_id = request.form.get('content_id')
+    
+    try:
+        if action == 'insert':
+            main_url = request.form.get('main_url')
+            sub_url = request.form.get('sub_url')
+            
+            # PK 중복 체크는 DB 에러로 처리
+            sql = "INSERT INTO SHOP (MainURL, SubURL, CID) VALUES (:main, :sub, :cid)"
+            cursor.execute(sql, main=main_url, sub=sub_url, cid=content_id)
+            flash('구매처가 추가되었습니다.', 'success')
+            
+        elif action == 'delete':
+            main_url = request.form.get('main_url')
+            sub_url = request.form.get('sub_url')
+            
+            # 복합키(Main, Sub)로 삭제
+            sql = "DELETE FROM SHOP WHERE MainURL = :main AND SubURL = :sub AND CID = :cid"
+            cursor.execute(sql, main=main_url, sub=sub_url, cid=content_id)
+            flash('구매처가 삭제되었습니다.', 'warning')
+            
+        conn.commit()
+        
+    except oracledb.IntegrityError:
+        conn.rollback()
+        flash('이미 등록된 URL입니다.', 'danger')
+    except Exception as e:
+        conn.rollback()
+        flash(f'오류 발생: {str(e)}', 'danger')
+    finally:
+        cursor.close()
+        
+    return redirect(url_for('admin.manage_contents'))
 
 @admin_bp.route('/tags', methods=['GET', 'POST'])
 @admin_required

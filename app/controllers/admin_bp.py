@@ -247,8 +247,9 @@ def manage_series():
 @admin_required
 def manage_contents():
     """
-    콘텐츠 관리 페이지
-    (이전 단계에서 구현된 함수 그대로 사용)
+    콘텐츠 관리 페이지 (태그 연동 포함)
+    Schema: ContentID, Title, ReleaseDate, PID, SID
+    Relation: TAG_TO (Many-to-Many with TAG)
     """
     conn = db.get_db()
     cursor = conn.cursor()
@@ -258,23 +259,36 @@ def manage_contents():
         action = request.form.get('action')
         
         try:
+            # 체크박스로 선택된 태그 코드 리스트 가져오기
+            selected_tags = request.form.getlist('tags') # ['1', '3', '5'] 형태
+
             if action == 'insert':
                 title = request.form.get('title')
                 release_date = request.form.get('release_date')
-                pid = request.form.get('pid') # 필수
-                sid = request.form.get('sid') # 선택 (없으면 None)
+                pid = request.form.get('pid')
+                sid = request.form.get('sid')
+                if not sid: sid = None
 
-                # SID가 빈 문자열이면 None(NULL)으로 처리
-                if not sid:
-                    sid = None
+                # [중요] TAG_TO에 넣으려면 생성될 ContentID를 미리 알아야 함
+                # 시퀀스 값을 먼저 가져옵니다.
+                cursor.execute("SELECT CONTENT_SEQ.NEXTVAL FROM DUAL")
+                new_id = cursor.fetchone()[0]
 
-                # 시퀀스 이름은 CONTENT_SEQ라고 가정
-                sql = """
+                # 1) 콘텐츠 저장
+                sql_content = """
                     INSERT INTO CONTENT (ContentID, Title, ReleaseDate, PID, SID)
-                    VALUES (CONTENT_SEQ.NEXTVAL, :title, TO_DATE(:r_date, 'YYYY-MM-DD'), :pid, :sid)
+                    VALUES (:nid, :title, TO_DATE(:r_date, 'YYYY-MM-DD'), :pid, :sid)
                 """
-                cursor.execute(sql, title=title, r_date=release_date, pid=pid, sid=sid)
-                flash('콘텐츠가 성공적으로 등록되었습니다.', 'success')
+                cursor.execute(sql_content, nid=new_id, title=title, r_date=release_date, pid=pid, sid=sid)
+
+                # 2) 태그 연결 저장 (반복문)
+                if selected_tags:
+                    sql_tag = "INSERT INTO TAG_TO (TCode, CID) VALUES (:tcode, :cid)"
+                    # executemany가 성능이 좋지만, 간단하게 반복문 사용
+                    for tag_code in selected_tags:
+                        cursor.execute(sql_tag, tcode=tag_code, cid=new_id)
+
+                flash(f'콘텐츠가 등록되었습니다. (태그 {len(selected_tags)}개)', 'success')
 
             elif action == 'update':
                 content_id = request.form.get('content_id')
@@ -282,11 +296,10 @@ def manage_contents():
                 release_date = request.form.get('release_date')
                 pid = request.form.get('pid')
                 sid = request.form.get('sid')
+                if not sid: sid = None
 
-                if not sid:
-                    sid = None
-
-                sql = """
+                # 1) 콘텐츠 정보 업데이트
+                sql_update = """
                     UPDATE CONTENT 
                     SET Title = :title, 
                         ReleaseDate = TO_DATE(:r_date, 'YYYY-MM-DD'),
@@ -294,25 +307,28 @@ def manage_contents():
                         SID = :sid
                     WHERE ContentID = :cid
                 """
-                cursor.execute(sql, title=title, r_date=release_date, pid=pid, sid=sid, cid=content_id)
+                cursor.execute(sql_update, title=title, r_date=release_date, pid=pid, sid=sid, cid=content_id)
+
+                # 2) 태그 정보 업데이트 (기존 매핑 삭제 -> 새 매핑 추가)
+                cursor.execute("DELETE FROM TAG_TO WHERE CID = :cid", cid=content_id)
+                
+                if selected_tags:
+                    sql_tag = "INSERT INTO TAG_TO (TCode, CID) VALUES (:tcode, :cid)"
+                    for tag_code in selected_tags:
+                        cursor.execute(sql_tag, tcode=tag_code, cid=content_id)
+
                 flash('콘텐츠 정보가 수정되었습니다.', 'success')
 
             elif action == 'delete':
                 content_id = request.form.get('content_id')
                 
-                # 자식 테이블(TAG_TO, SHOP, RATING)이 있다면 먼저 지워야 함
-                # 제공된 SQL 스키마는 CASCADE DELETE가 아니므로 수동 삭제 로직이 필요하지만,
-                # 현재는 테스트를 위해 DB의 FK 설정을 믿고 삭제 시도
-                sql_delete_tag_to = "DELETE FROM TAG_TO WHERE CID = :cid"
-                cursor.execute(sql_delete_tag_to, cid=content_id)
-                sql_delete_shop = "DELETE FROM SHOP WHERE CID = :cid"
-                cursor.execute(sql_delete_shop, cid=content_id)
-                sql_delete_rating = "DELETE FROM RATING WHERE CID = :cid"
-                cursor.execute(sql_delete_rating, cid=content_id)
+                # 자식 데이터 삭제 (태그 매핑, 상점, 리뷰)
+                cursor.execute("DELETE FROM TAG_TO WHERE CID = :cid", cid=content_id)
+                cursor.execute("DELETE FROM SHOP WHERE CID = :cid", cid=content_id)
+                cursor.execute("DELETE FROM RATING WHERE CID = :cid", cid=content_id)
                 
-                # CONTENT 삭제
-                sql = "DELETE FROM CONTENT WHERE ContentID = :cid"
-                cursor.execute(sql, cid=content_id)
+                # 본체 삭제
+                cursor.execute("DELETE FROM CONTENT WHERE ContentID = :cid", cid=content_id)
                 flash('콘텐츠가 삭제되었습니다.', 'warning')
 
             conn.commit()
@@ -329,12 +345,19 @@ def manage_contents():
 
     # 2. GET 요청 처리 (조회)
     try:
-        # A. 콘텐츠 목록 조회 (제작사명, 시리즈명 조인)
+        # A. 콘텐츠 목록 + 태그 목록(LISTAGG) 조회
+        # Oracle 11g R2 이상에서 LISTAGG 사용 가능
         sql_list = """
             SELECT c.ContentID, c.Title, 
                    TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
                    c.PID, p.Prodname,
-                   c.SID, s.SName
+                   c.SID, s.SName,
+                   (SELECT LISTAGG(t.Tag, ', ') WITHIN GROUP (ORDER BY t.Tag)
+                    FROM TAG_TO tt JOIN TAG t ON tt.TCode = t.TagCode
+                    WHERE tt.CID = c.ContentID) as TagNames,
+                   (SELECT LISTAGG(t.TagCode, ',') WITHIN GROUP (ORDER BY t.TagCode)
+                    FROM TAG_TO tt JOIN TAG t ON tt.TCode = t.TagCode
+                    WHERE tt.CID = c.ContentID) as TagCodes
             FROM CONTENT c
             JOIN PRODUCT_CO p ON c.PID = p.ProdcoID
             LEFT JOIN SERIES s ON c.SID = s.SeriesID
@@ -345,26 +368,42 @@ def manage_contents():
         cursor.rowfactory = lambda *args: dict(zip(columns, args))
         contents = cursor.fetchall()
 
-        # B. 제작사 목록 조회 (드롭다운용)
+        # B. 제작사 목록 (드롭다운)
         cursor.execute("SELECT ProdcoID, Prodname FROM PRODUCT_CO ORDER BY Prodname")
         producers = [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
 
-        # C. 시리즈 목록 조회 (드롭다운용)
+        # C. 시리즈 목록 (드롭다운)
         cursor.execute("SELECT SeriesID, SName FROM SERIES ORDER BY SName")
         series_list = [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
+        
+        # D. 전체 태그 목록 (모달 체크박스용)
+        cursor.execute("SELECT TagCode, Category, Tag FROM TAG ORDER BY Category, Tag")
+        all_tags = []
+        for row in cursor.fetchall():
+            all_tags.append({'code': row[0], 'category': row[1], 'name': row[2]})
+            
+        # 태그를 카테고리별로 그룹화 (Python에서 처리)
+        tags_by_category = {}
+        for tag in all_tags:
+            cat = tag['category']
+            if cat not in tags_by_category:
+                tags_by_category[cat] = []
+            tags_by_category[cat].append(tag)
 
     except Exception as e:
         flash(f'데이터 조회 중 오류: {str(e)}', 'danger')
         contents = []
         producers = []
         series_list = []
+        tags_by_category = {}
     finally:
         cursor.close()
 
     return render_template('admin/contents.html', 
                            contents=contents, 
                            producers=producers, 
-                           series_list=series_list)
+                           series_list=series_list,
+                           tags_by_category=tags_by_category)
 
 
 @admin_bp.route('/tags', methods=['GET', 'POST'])

@@ -7,40 +7,151 @@
     <div class="col-12">
         <h2 class="mb-4">{{ content.title }}</h2>
         
+        <!-- 콘텐츠 기본 정보 -->
         <div class="card mb-4">
             <div class="card-body">
                 <dl class="row">
-                    <dt class="col-sm-3">콘텐츠 ID</dt>
-                    <dd class="col-sm-9">{{ content.content_id }}</dd>
-                    
                     <dt class="col-sm-3">출시일</dt>
-                    <dd class="col-sm-9">{{ content.release_date }}</dd>
+                    <dd class="col-sm-9">{{ content.releasedate }}</dd>
                     
                     <dt class="col-sm-3">제작사</dt>
-                    <dd class="col-sm-9">{{ content.producer }}</dd>
+                    <dd class="col-sm-9">
+                        {{ content.prodname }}
+                        {% if content.prodinfo %}
+                            <br><small class="text-muted">{{ content.prodinfo }}</small>
+                        {% endif %}
+                    </dd>
+                    
+                    {% if content.sname %}
+                    <dt class="col-sm-3">시리즈</dt>
+                    <dd class="col-sm-9">{{ content.sname }}</dd>
+                    {% endif %}
                 </dl>
                 
-                {% if session.get('user_id') %}
-                    <a href="{{ url_for('content.create_review', content_id=content.content_id) }}" class="btn btn-primary">리뷰 작성</a>
-                {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">로그인 후 리뷰 작성</a>
+                <!-- 태그 정보 -->
+                {% if tags_by_category %}
+                <div class="mb-3">
+                    <strong>태그:</strong>
+                    {% for category, tags in tags_by_category.items() %}
+                        <span class="badge bg-secondary me-1">{{ category }}: {{ tags }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- 구매처 정보 -->
+                {% if shops %}
+                <div class="mb-3">
+                    <strong>구매처:</strong>
+                    {% for shop in shops %}
+                        <a href="{{ shop.main_url }}{{ shop.sub_url }}" target="_blank" class="btn btn-sm btn-outline-primary me-1">
+                            {{ shop.main_url }}
+                        </a>
+                    {% endfor %}
+                </div>
                 {% endif %}
             </div>
         </div>
         
+        <!-- 리뷰 통계 -->
+        {% if stats.reviewcount > 0 %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">리뷰 통계</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <h3 class="text-primary">{{ stats.avgrating }}</h3>
+                        <p class="text-muted">평균 평점 ({{ stats.reviewcount }}개 리뷰)</p>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="mb-2">
+                            <small>5점: {{ stats.rating5 }}개</small>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar" style="width: {% if stats.reviewcount > 0 %}{{ (stats.rating5 / stats.reviewcount * 100) }}{% else %}0{% endif %}%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <small>4점: {{ stats.rating4 }}개</small>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {% if stats.reviewcount > 0 %}{{ (stats.rating4 / stats.reviewcount * 100) }}{% else %}0{% endif %}%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <small>3점: {{ stats.rating3 }}개</small>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: {% if stats.reviewcount > 0 %}{{ (stats.rating3 / stats.reviewcount * 100) }}{% else %}0{% endif %}%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <small>2점: {{ stats.rating2 }}개</small>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: {% if stats.reviewcount > 0 %}{{ (stats.rating2 / stats.reviewcount * 100) }}{% else %}0{% endif %}%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <small>1점: {{ stats.rating1 }}개</small>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: {% if stats.reviewcount > 0 %}{{ (stats.rating1 / stats.reviewcount * 100) }}{% else %}0{% endif %}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 리뷰 작성 버튼 -->
+        <div class="mb-3">
+            {% if session.get('user_id') %}
+                {% if user_review %}
+                    <a href="{{ url_for('content.update_review', content_id=content.contentid) }}" class="btn btn-warning">리뷰 수정</a>
+                    <form method="POST" action="{{ url_for('content.delete_review', content_id=content.contentid) }}" class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                        <button type="submit" class="btn btn-danger">리뷰 삭제</button>
+                    </form>
+                {% else %}
+                    <a href="{{ url_for('content.create_review', content_id=content.contentid) }}" class="btn btn-primary">리뷰 작성</a>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">로그인 후 리뷰 작성</a>
+            {% endif %}
+        </div>
+        
+        <!-- 리뷰 목록 -->
         <h3 class="mb-3">리뷰 목록</h3>
         {% if reviews %}
             {% for review in reviews %}
                 <div class="card mb-2">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <h5 class="card-title">{{ review.member_name }}</h5>
-                            <span class="badge bg-primary">평점: {{ review.rating }}/5</span>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title mb-1">{{ review.membername }}</h5>
+                                <div class="mb-2">
+                                    {% for i in range(1, 6) %}
+                                        {% if i <= review.rating %}
+                                            <span class="text-warning">★</span>
+                                        {% else %}
+                                            <span class="text-muted">☆</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="badge bg-primary ms-2">{{ review.rating }}/5</span>
+                                </div>
+                                {% if review.comm %}
+                                    <p class="card-text">{{ review.comm }}</p>
+                                {% else %}
+                                    <p class="card-text text-muted"><em>코멘트 없음</em></p>
+                                {% endif %}
+                            </div>
+                            {% if review.memberid == user_id %}
+                            <div>
+                                <a href="{{ url_for('content.update_review', content_id=content.contentid) }}" class="btn btn-sm btn-outline-warning">수정</a>
+                                <form method="POST" action="{{ url_for('content.delete_review', content_id=content.contentid) }}" class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">삭제</button>
+                                </form>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% if review.comment %}
-                            <p class="card-text">{{ review.comment }}</p>
+                        {% if review.likes %}
+                        <small class="text-muted">👍 좋아요: {{ review.likes }}</small>
                         {% endif %}
-                        <small class="text-muted">좋아요: {{ review.likes }}</small>
                     </div>
                 </div>
             {% endfor %}

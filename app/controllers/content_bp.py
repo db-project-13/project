@@ -12,33 +12,34 @@ content_bp = Blueprint('content', __name__, url_prefix='/content')
 @content_bp.route('/movies')
 def movies():
     """
-    영화 목록 페이지
+    영화 목록 페이지 (ContentID: 2001 ~ 3000)
     """
-    return _get_contents_by_theme('Movie', '영화')
+    return _get_contents_by_theme(2001, 3000, '영화')
 
 
 @content_bp.route('/games')
 def games():
     """
-    게임 목록 페이지
+    게임 목록 페이지 (ContentID: 301 ~ 1000)
     """
-    return _get_contents_by_theme('Video Game', '게임')
+    return _get_contents_by_theme(301, 1000, '게임')
 
 
 @content_bp.route('/books')
 def books():
     """
-    도서 목록 페이지
+    도서 목록 페이지 (ContentID: 1001 ~ 2000)
     """
-    return _get_contents_by_theme('Book', '도서')
+    return _get_contents_by_theme(1001, 2000, '도서')
 
 
-def _get_contents_by_theme(theme_tag, theme_name):
+def _get_contents_by_theme(min_id, max_id, theme_name):
     """
-    테마별 콘텐츠 목록 조회 헬퍼 함수
+    테마별 콘텐츠 목록 조회 헬퍼 함수 (ContentID 범위 기반)
     
     Args:
-        theme_tag: MediaType 태그 값 ('Movie', 'Video Game', 'Book')
+        min_id: ContentID 최소값
+        max_id: ContentID 최대값
         theme_name: 테마 이름 (한글)
     """
     conn = db.get_db()
@@ -58,12 +59,10 @@ def _get_contents_by_theme(theme_tag, theme_name):
             FROM CONTENT c
             JOIN PRODUCT_CO p ON c.PID = p.ProdcoID
             LEFT JOIN SERIES s ON c.SID = s.SeriesID
-            JOIN TAG_TO tt ON c.ContentID = tt.CID
-            JOIN TAG t ON tt.TCode = t.TagCode
-            WHERE t.Category = 'MediaType' AND t.Tag = :theme
+            WHERE c.ContentID >= :min_id AND c.ContentID <= :max_id
             ORDER BY c.ReleaseDate DESC
         """
-        cursor.execute(sql_list, theme=theme_tag)
+        cursor.execute(sql_list, min_id=min_id, max_id=max_id)
         columns = [col[0].lower() for col in cursor.description]
         cursor.rowfactory = lambda *args: dict(zip(columns, args))
         all_contents = cursor.fetchall()

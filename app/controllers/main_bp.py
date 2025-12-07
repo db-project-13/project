@@ -1,7 +1,7 @@
 """
 메인 페이지 Blueprint
 """
-from flask import Blueprint, render_template, session, request
+from flask import Blueprint, render_template, session, request, flash
 from app.db import db
 import oracledb
 
@@ -32,9 +32,12 @@ def index():
             SELECT c.ContentID, c.Title, 
                    TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
                    p.Prodname, s.SName,
-                   (SELECT LISTAGG(t.Tag, ', ') WITHIN GROUP (ORDER BY t.Tag)
-                    FROM TAG_TO tt JOIN TAG t ON tt.TCode = t.TagCode
-                    WHERE tt.CID = c.ContentID AND t.Category = 'MediaType') as MediaType,
+                   CASE 
+                       WHEN c.ContentID >= 2001 AND c.ContentID <= 3000 THEN 'Movie'
+                       WHEN c.ContentID >= 301 AND c.ContentID <= 1000 THEN 'Video Game'
+                       WHEN c.ContentID >= 1001 AND c.ContentID <= 2000 THEN 'Book'
+                       ELSE 'Unknown'
+                   END as MediaType,
                    (SELECT ROUND(AVG(r.Rating), 1) FROM RATING r WHERE r.CID = c.ContentID) as AvgRating,
                    (SELECT COUNT(*) FROM RATING r WHERE r.CID = c.ContentID) as ReviewCount
             FROM CONTENT c
@@ -51,19 +54,24 @@ def index():
         total = len(all_contents)
         contents = all_contents[offset:offset + per_page]
         
-        # 테마별 통계
-        sql_stats = """
-            SELECT t.Tag as MediaType, COUNT(DISTINCT c.ContentID) as Count
-            FROM CONTENT c
-            JOIN TAG_TO tt ON c.ContentID = tt.CID
-            JOIN TAG t ON tt.TCode = t.TagCode
-            WHERE t.Category = 'MediaType'
-            GROUP BY t.Tag
-        """
-        cursor.execute(sql_stats)
+        # 테마별 통계 (ContentID 범위 기반)
+        # 영화: 2001 ~ 3000, 게임: 301 ~ 1000, 도서: 1001 ~ 2000
         theme_stats = {}
-        for row in cursor.fetchall():
-            theme_stats[row[0]] = row[1]
+        
+        # 영화 개수
+        sql_movies = "SELECT COUNT(*) FROM CONTENT WHERE ContentID >= 2001 AND ContentID <= 3000"
+        cursor.execute(sql_movies)
+        theme_stats['Movie'] = cursor.fetchone()[0]
+        
+        # 게임 개수
+        sql_games = "SELECT COUNT(*) FROM CONTENT WHERE ContentID >= 301 AND ContentID <= 1000"
+        cursor.execute(sql_games)
+        theme_stats['Video Game'] = cursor.fetchone()[0]
+        
+        # 도서 개수
+        sql_books = "SELECT COUNT(*) FROM CONTENT WHERE ContentID >= 1001 AND ContentID <= 2000"
+        cursor.execute(sql_books)
+        theme_stats['Book'] = cursor.fetchone()[0]
         
     except Exception as e:
         flash(f'데이터 조회 중 오류 발생: {str(e)}', 'danger')

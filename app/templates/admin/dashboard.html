@@ -37,20 +37,29 @@
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="row mt-4">
-            <div class="col-12">
+            
+            <div class="col-md-4 mb-3">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">쿼리 실행</h5>
-                        <p class="card-text">10개 선정 쿼리 실행 및 결과 조회</p>
-                        <a href="{{ url_for('admin.query_menu') }}" class="btn btn-success">쿼리 메뉴</a>
+                        <h5 class="card-title">회원 관리</h5>
+                        <p class="card-text">일반 회원 목록 조회 및 삭제</p>
+                        <a href="{{ url_for('admin.manage_members') }}" class="btn btn-info">이동</a>
                     </div>
                 </div>
             </div>
-        </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">태그 관리</h5>
+                        <p class="card-text">태그 및 카테고리 등록, 삭제</p>
+                        <a href="{{ url_for('admin.manage_tags') }}" class="btn btn-success">이동</a>
+                    </div>
+                </div>
+            </div>
+            
+            </div>
+        
     </div>
 </div>
 {% endblock %}
-

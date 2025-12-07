@@ -47,7 +47,7 @@ def execute_sql_file(conn, cursor, filename):
             cursor.execute(stmt)
             # 실행 성공 로그 (너무 길면 자르기)
             log_stmt = stmt.replace('\n', ' ')[:40]
-            print(f"   ✅ 실행: {log_stmt}...")
+            # print(f"   ✅ 실행: {log_stmt}...")
             success_count += 1
         except oracledb.Error as e:
             error_obj, = e.args
@@ -55,7 +55,7 @@ def execute_sql_file(conn, cursor, filename):
             if error_obj.code in (942, 2289):
                 print(f"   ⚠️  건너뜀 (대상 없음): {stmt[:30]}...")
             else:
-                print(f"   ❌ 실패: {stmt[:30]}...")
+                print(f"   ❌ 실패: {stmt}...")
                 print(f"      └─ 이유: {error_obj.message}")
                 error_count += 1
 

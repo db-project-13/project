@@ -31,8 +31,8 @@
                             <tr>
                                 <th>ID</th>
                                 <th>제목</th>
-                                <th>제작사 (PID)</th>
-                                <th>시리즈 (SID)</th>
+                                <th>태그</th>
+                                <th>제작사 / 시리즈</th>
                                 <th>출시일</th>
                                 <th class="text-center">작업</th>
                             </tr>
@@ -42,27 +42,45 @@
                                 <tr>
                                     <td>{{ content.contentid }}</td>
                                     <td class="fw-bold">{{ content.title }}</td>
-                                    <td>{{ content.prodname }}</td>
                                     <td>
-                                        {% if content.sname %}
-                                            <span class="badge bg-info text-dark">{{ content.sname }}</span>
+                                        {% if content.tagnames %}
+                                            <small class="text-primary">{{ content.tagnames }}</small>
                                         {% else %}
-                                            <span class="text-muted">-</span>
+                                            <span class="text-muted small">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>{{ content.prodname }}</div>
+                                        {% if content.sname %}
+                                            <span class="badge bg-secondary">{{ content.sname }}</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ content.releasedate }}</td>
                                     <td class="text-center">
+                                        {% set current_shops = shops_by_content.get(content.contentid, []) %}
+                                        <button class="btn btn-sm btn-outline-success me-1"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#shopModal"
+                                                data-id="{{ content.contentid }}"
+                                                data-title="{{ content.title }}"
+                                                data-shops='{{ current_shops | tojson | safe }}'
+                                                onclick="openShopModal(this)">
+                                            <i class="bi bi-cart"></i> 구매처
+                                        </button>
+
                                         <button class="btn btn-sm btn-outline-primary" 
-                                                data-bs-toggle="modal" data-bs-target="#contentModal"
-                                                onclick="prepareUpdate(
-                                                    '{{ content.contentid }}', 
-                                                    '{{ content.title }}', 
-                                                    '{{ content.releasedate }}', 
-                                                    '{{ content.pid }}', 
-                                                    '{{ content.sid }}'
-                                                )">
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#contentModal"
+                                                data-id="{{ content.contentid }}"
+                                                data-title="{{ content.title }}"
+                                                data-date="{{ content.releasedate }}"
+                                                data-pid="{{ content.pid }}"
+                                                data-sid="{{ content.sid }}"
+                                                data-tags="{{ content.tagcodes or '' }}" 
+                                                onclick="setModalData(this)">
                                             수정
                                         </button>
+                                        
                                         <form action="{{ url_for('admin.manage_contents') }}" method="POST" class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="content_id" value="{{ content.contentid }}">
@@ -84,46 +102,78 @@
 </div>
 
 <div class="modal fade" id="contentModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+   <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="POST" action="{{ url_for('admin.manage_contents') }}">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle">콘텐츠 등록</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="action" id="formAction" value="insert">
                     <input type="hidden" name="content_id" id="contentId">
 
-                    <div class="mb-3">
-                        <label for="title" class="form-label">제목 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="title" name="title" required>
+                    <h6 class="border-bottom pb-2 mb-3">기본 정보</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="title" class="form-label">제목 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="release_date" class="form-label">출시일 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="release_date" name="release_date" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="pid" class="form-label">제작사 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="pid" name="pid" required>
+                                <option value="">선택하세요</option>
+                                {% for p in producers %}
+                                    <option value="{{ p.id }}">{{ p.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="sid" class="form-label">시리즈</label>
+                            <select class="form-select" id="sid" name="sid">
+                                <option value="">없음 (단편)</option>
+                                {% for s in series_list %}
+                                    <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
 
+                    <h6 class="border-bottom pb-2 mb-3 mt-2">태그 선택</h6>
                     <div class="mb-3">
-                        <label for="release_date" class="form-label">출시일 <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="release_date" name="release_date" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="pid" class="form-label">제작사 (Product Co) <span class="text-danger">*</span></label>
-                        <select class="form-select" id="pid" name="pid" required>
-                            <option value="">선택하세요</option>
-                            {% for p in producers %}
-                                <option value="{{ p.id }}">{{ p.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="sid" class="form-label">시리즈 (Series)</label>
-                        <select class="form-select" id="sid" name="sid">
-                            <option value="">없음 (단편)</option>
-                            {% for s in series_list %}
-                                <option value="{{ s.id }}">{{ s.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">시리즈에 속하지 않은 경우 선택하지 마세요.</div>
+                        {% if tags_by_category %}
+                            <div class="row">
+                                {% for category, tags in tags_by_category.items() %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-header py-1 bg-light fw-bold">
+                                                {{ category }}
+                                            </div>
+                                            <div class="card-body py-2">
+                                                {% for tag in tags %}
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input tag-checkbox" type="checkbox" 
+                                                               name="tags" value="{{ tag.code }}" id="tag_{{ tag.code }}">
+                                                        <label class="form-check-label" for="tag_{{ tag.code }}">
+                                                            {{ tag.name }}
+                                                        </label>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">등록된 태그가 없습니다.</p>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -135,35 +185,124 @@
     </div>
 </div>
 
+
+<div class="modal fade" id="shopModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">구매처 관리 - <span id="shopContentTitle"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                
+                <h6 class="fw-bold">등록된 구매처</h6>
+                <div id="shopListArea" class="list-group mb-4">
+                    <div class="list-group-item text-muted text-center">불러오는 중...</div>
+                </div>
+
+                <h6 class="fw-bold border-top pt-3">새 구매처 추가</h6>
+                <form action="{{ url_for('admin.manage_shops') }}" method="POST">
+                    <input type="hidden" name="action" value="insert">
+                    <input type="hidden" name="content_id" id="shopContentId">
+                    
+                    <div class="mb-2">
+                        <label class="form-label small">Main URL (플랫폼명)</label>
+                        <input type="text" class="form-control form-control-sm" name="main_url" placeholder="예: https://product.kyobobook.co.kr" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Sub URL (상세 주소)</label>
+                        <input type="text" class="form-control form-control-sm" name="sub_url" placeholder="예: /detail/S000214664899" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-sm">추가</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    // 등록 버튼 클릭 시 모달 초기화
+    // [기존] 콘텐츠 모달 스크립트
+    function clearCheckboxes() {
+        const checkboxes = document.querySelectorAll('.tag-checkbox');
+        checkboxes.forEach(cb => cb.checked = false);
+    }
+    
     function prepareInsert() {
         document.getElementById('modalTitle').innerText = '콘텐츠 등록';
         document.getElementById('formAction').value = 'insert';
         document.getElementById('contentId').value = '';
-        
-        // 입력 필드 초기화
         document.getElementById('title').value = '';
         document.getElementById('release_date').value = '';
         document.getElementById('pid').value = '';
         document.getElementById('sid').value = '';
+        clearCheckboxes();
     }
 
-    // 수정 버튼 클릭 시 해당 데이터로 모달 채우기
-    function prepareUpdate(id, title, date, pid, sid) {
+    function setModalData(button) {
         document.getElementById('modalTitle').innerText = '콘텐츠 수정';
         document.getElementById('formAction').value = 'update';
-        document.getElementById('contentId').value = id;
         
+        const id = button.getAttribute('data-id');
+        const title = button.getAttribute('data-title');
+        const date = button.getAttribute('data-date');
+        const pid = button.getAttribute('data-pid');
+        const sid = button.getAttribute('data-sid');
+        const tagCodesStr = button.getAttribute('data-tags');
+
+        document.getElementById('contentId').value = id;
         document.getElementById('title').value = title;
         document.getElementById('release_date').value = date;
         document.getElementById('pid').value = pid;
+        document.getElementById('sid').value = (sid === 'None' || !sid) ? '' : sid;
         
-        // SID가 'None'이거나 비어있으면 빈 값으로 설정
-        if (sid === 'None' || sid === '') {
-            document.getElementById('sid').value = '';
+        clearCheckboxes();
+        if (tagCodesStr) {
+            const tagCodes = tagCodesStr.split(',');
+            tagCodes.forEach(code => {
+                const checkbox = document.getElementById('tag_' + code);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+    }
+
+    // [NEW] 구매처 모달 스크립트
+    function openShopModal(button) {
+        const id = button.getAttribute('data-id');
+        const title = button.getAttribute('data-title');
+        // JSON 파싱 (문자열 -> 객체 배열)
+        const shops = JSON.parse(button.getAttribute('data-shops'));
+
+        document.getElementById('shopContentTitle').innerText = title;
+        document.getElementById('shopContentId').value = id;
+
+        const listArea = document.getElementById('shopListArea');
+        listArea.innerHTML = ''; // 초기화
+
+        if (shops.length === 0) {
+            listArea.innerHTML = '<div class="list-group-item text-center text-muted small">등록된 구매처가 없습니다.</div>';
         } else {
-            document.getElementById('sid').value = sid;
+            shops.forEach(shop => {
+                // 각 항목 생성
+                const item = document.createElement('div');
+                item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                item.innerHTML = `
+                    <div class="text-truncate me-2">
+                        <span class="fw-bold d-block small">${shop.main}</span>
+                        <span class="text-muted small" style="font-size: 0.8em;">${shop.sub}</span>
+                    </div>
+                    <form action="{{ url_for('admin.manage_shops') }}" method="POST" class="m-0" onsubmit="return confirm('삭제하시겠습니까?');">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="content_id" value="${id}">
+                        <input type="hidden" name="main_url" value="${shop.main}">
+                        <input type="hidden" name="sub_url" value="${shop.sub}">
+                        <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 0.7rem; padding: 2px 5px;">삭제</button>
+                    </form>
+                `;
+                listArea.appendChild(item);
+            });
         }
     }
 </script>

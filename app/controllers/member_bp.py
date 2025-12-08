@@ -1,8 +1,12 @@
+# ----------------------------------------------------------
+# 2025.12.05 이태호
+# ----------------------------------------------------------
 """
 회원 관리 Blueprint (회원가입, 회원정보 수정)
 """
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from app.utils.decorators import login_required
+from app.services import member_service
 
 member_bp = Blueprint('member', __name__, url_prefix='/member')
 
@@ -11,83 +15,58 @@ member_bp = Blueprint('member', __name__, url_prefix='/member')
 def register():
     """
     회원가입 페이지 및 회원가입 처리
-    
-    GET: 회원가입 폼 표시
-    POST: 회원가입 처리 (추후 MemberService 연동)
     """
-    # 이미 로그인된 경우 메인으로 리다이렉트
-    if 'user_id' in session:
-        flash('이미 로그인되어 있습니다.', 'info')
-        return redirect(url_for('main.index'))
-    
-    if request.method == 'POST':
-        # 폼 데이터 수집
-        form_data = {
-            'id': request.form.get('id', '').strip(),
-            'password': request.form.get('password', '').strip(),
-            'name': request.form.get('name', '').strip(),
-            'address': request.form.get('address', '').strip(),
-            'sex': request.form.get('sex', '').strip().upper(),
-            'birthday': request.form.get('birthday', '').strip()
-        }
-        
-        # TODO: MemberService를 통한 회원가입 처리
-        # member_service = MemberService(member_dao)
-        # try:
-        #     member_service.register_member(form_data)
-        #     flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
-        #     return redirect(url_for('auth.login'))
-        # except ValueError as e:
-        #     flash(str(e), 'error')
-        
-        # 임시: 성공 메시지 (추후 제거)
-        flash('회원가입 기능은 추후 구현 예정입니다.', 'info')
+    if request.method == 'GET':
+        return render_template('member/register.html')
+
+    form = request.form
+
+    try:
+        member_service.register_member(form)
+        flash('회원가입이 완료되었습니다. 로그인 해주세요.', 'success')
         return redirect(url_for('auth.login'))
-    
-    return render_template('member/register.html')
+
+    except member_service.DuplicateIdError as e:
+        flash(str(e), 'danger')
+        return render_template('member/register.html')
+
+    except member_service.MemberServiceError as e:
+        flash(str(e), 'danger')
+        return render_template('member/register.html')
+
+    except Exception:
+        flash('회원가입 처리 중 오류가 발생했습니다.', 'danger')
+        return render_template('member/register.html')
 
 
 @member_bp.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
-def edit_profile():
+def profile_edit():
     """
-    회원정보 수정 페이지 및 수정 처리
-    
-    GET: 회원정보 수정 폼 표시
-    POST: 회원정보 수정 처리 (추후 MemberService 연동)
+    마이페이지 - 비밀번호/주소 수정
     """
     user_id = session.get('user_id')
-    
-    if request.method == 'POST':
-        # 폼 데이터 수집
-        form_data = {
-            'password': request.form.get('password', '').strip(),
-            'address': request.form.get('address', '').strip()
-        }
-        
-        # TODO: MemberService를 통한 회원정보 수정 처리
-        # member_service = MemberService(member_dao)
-        # try:
-        #     member_service.modify_profile(user_id, form_data)
-        #     flash('회원정보가 성공적으로 수정되었습니다.', 'success')
-        #     return redirect(url_for('member.edit_profile'))
-        # except ValueError as e:
-        #     flash(str(e), 'error')
-        
-        # 임시: 성공 메시지 (추후 제거)
-        flash('회원정보 수정 기능은 추후 구현 예정입니다.', 'info')
-        return redirect(url_for('member.edit_profile'))
-    
-    # TODO: 현재 회원정보 조회
-    # member_dao = MemberDAO(current_app.db)
-    # member = member_dao.find_by_id(user_id)
-    
-    # 임시 데이터
-    member = {
-        'id': user_id,
-        'password': '****',
-        'address': '주소 정보 없음'
-    }
-    
-    return render_template('member/profile_edit.html', member=member)
 
+    if request.method == 'GET':
+        member = member_service.get_profile(user_id)
+        if member is None:
+            flash('회원 정보를 찾을 수 없습니다.', 'danger')
+            return redirect(url_for('main.index'))
+
+        return render_template('member/profile_edit.html', member=member)
+
+    form = request.form
+    try:
+        member_service.update_profile(user_id, form)
+        flash('회원 정보가 수정되었습니다.', 'success')
+        return redirect(url_for('member.profile_edit'))
+
+    except member_service.MemberServiceError as e:
+        flash(str(e), 'danger')
+        member = member_service.get_profile(user_id)
+        return render_template('member/profile_edit.html', member=member)
+
+    except Exception:
+        flash('회원 정보 수정 중 오류가 발생했습니다.', 'danger')
+        member = member_service.get_profile(user_id)
+        return render_template('member/profile_edit.html', member=member)

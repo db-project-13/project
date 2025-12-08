@@ -1,40 +1,56 @@
-{% extends "layout/base.html" %}
-
-{% block title %}회원정보 수정 - Team13-Phase4{% endblock %}
-
-{% block content %}
+{% extends "layout/base.html" %} {% block title %}회원정보 수정 -
+Team13-Phase4{% endblock %} {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">회원정보 수정</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('member.edit_profile') }}">
-                    <div class="mb-3">
-                        <label for="id" class="form-label">아이디</label>
-                        <input type="text" class="form-control" id="id" value="{{ member.id }}" disabled>
-                        <small class="form-text text-muted">아이디는 변경할 수 없습니다.</small>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">새 비밀번호</label>
-                        <input type="password" class="form-control" id="password" name="password" placeholder="변경하지 않으려면 비워두세요">
-                    </div>
-                    <div class="mb-3">
-                        <label for="address" class="form-label">주소</label>
-                        <input type="text" class="form-control" id="address" name="address" value="{{ member.address or '' }}">
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">수정하기</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
-        <div class="alert alert-info mt-3" role="alert">
-            <strong>참고:</strong> 회원정보 수정 기능은 추후 구현 예정입니다.
-        </div>
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="mb-0">회원정보 수정</h4>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('member.profile_edit') }}">
+          <div class="mb-3">
+            <label for="id" class="form-label">아이디</label>
+            <input
+              type="text"
+              class="form-control"
+              id="id"
+              value="{{ member.id }}"
+              disabled
+            />
+            <small class="form-text text-muted"
+              >아이디는 변경할 수 없습니다.</small
+            >
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">새 비밀번호</label>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              placeholder="변경하지 않으려면 비워두세요"
+            />
+          </div>
+          <div class="mb-3">
+            <label for="address" class="form-label">주소</label>
+            <input
+              type="text"
+              class="form-control"
+              id="address"
+              name="address"
+              value="{{ member.address or '' }}"
+            />
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">수정하기</button>
+          </div>
+        </form>
+      </div>
     </div>
+
+    <div class="alert alert-info mt-3" role="alert">
+      <strong>참고:</strong> 회원정보 수정 기능은 추후 구현 예정입니다.
+    </div>
+  </div>
 </div>
 {% endblock %}
-

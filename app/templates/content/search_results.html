@@ -5,18 +5,50 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h2 class="mb-4">검색 결과: "{{ search_term }}"</h2>
+        <h2 class="mb-4">검색 결과</h2>
+        
+        {% if search_term or tag %}
+        <div class="alert alert-info mb-3" role="alert">
+            {% if search_term and tag %}
+                제목: "{{ search_term }}" | 태그: "{{ tag }}"
+            {% elif search_term %}
+                제목: "{{ search_term }}"
+            {% elif tag %}
+                태그: "{{ tag }}"
+            {% endif %}
+        </div>
+        {% endif %}
         
         {% if results %}
-            <div class="list-group">
+            <div class="row">
                 {% for result in results %}
-                    <a href="{{ url_for('content.detail', content_id=result.content_id) }}" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ result.title }}</h5>
-                            <small>{{ result.release_date }}</small>
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a href="{{ url_for('content.detail', content_id=result.contentid) }}" class="text-decoration-none">
+                                    {{ result.title }}
+                                </a>
+                            </h5>
+                            <p class="card-text">
+                                <small class="text-muted">출시일: {{ result.releasedate }}</small><br>
+                                <small class="text-muted">제작사: {{ result.prodname }}</small>
+                                {% if result.sname %}
+                                <br><small class="text-muted">시리즈: {{ result.sname }}</small>
+                                {% endif %}
+                            </p>
+                            {% if result.avgrating %}
+                            <p class="mb-0">
+                                <span class="badge bg-primary">평점: {{ result.avgrating }}/5</span>
+                                <span class="badge bg-secondary">리뷰: {{ result.reviewcount }}개</span>
+                            </p>
+                            {% endif %}
                         </div>
-                        <p class="mb-1">{{ result.producer }}</p>
-                    </a>
+                        <div class="card-footer">
+                            <a href="{{ url_for('content.detail', content_id=result.contentid) }}" class="btn btn-sm btn-primary">상세보기</a>
+                        </div>
+                    </div>
+                </div>
                 {% endfor %}
             </div>
         {% else %}

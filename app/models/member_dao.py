@@ -14,7 +14,10 @@ COL_BIRTHDAY = "BIRTHDAY"
 
 
 def _row_to_member_dict(row) -> Dict[str, Any]:
-    # SELECT 순서에 맞춰 매핑
+    """
+    MEMBER 한 행(row)을 파이썬 dict로 변환
+    순서는 get_member_by_id 의 SELECT 순서를 따른다.
+    """
     return {
         "id": row[0],
         "password": row[1],
@@ -66,14 +69,17 @@ def insert_member(conn, member: Dict[str, Any]) -> None:
             TO_DATE(:birthday, 'YYYY-MM-DD')
         )
     """
-    cursor.execute(sql, {
-        "id": member["id"],
-        "password": member["password"],
-        "name": member["name"],
-        "address": member.get("address"),
-        "sex": member.get("sex"),
-        "birthday": member.get("birthday"),
-    })
+    cursor.execute(
+        sql,
+        {
+            "id": member["id"],
+            "password": member["password"],
+            "name": member["name"],
+            "address": member.get("address"),
+            "sex": member.get("sex"),
+            "birthday": member.get("birthday"),
+        },
+    )
 
 
 def update_member(conn, user_id: str, updates: Dict[str, Any]) -> None:
@@ -95,12 +101,11 @@ def update_member(conn, user_id: str, updates: Dict[str, Any]) -> None:
         params["sex"] = updates["sex"]
 
     if "birthday" in updates:
-        set_parts.append(
-            f"{COL_BIRTHDAY} = TO_DATE(:birthday,'YYYY-MM-DD')")
+        set_parts.append(f"{COL_BIRTHDAY} = TO_DATE(:birthday,'YYYY-MM-DD')")
         params["birthday"] = updates["birthday"]
 
     if not set_parts:
-        return
+        return  # 변경할 값이 없으면 그냥 리턴
 
     sql = f"""
         UPDATE {MEMBER_TABLE}

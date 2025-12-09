@@ -21,12 +21,15 @@ def login():
             return render_template("auth/login.html")
 
         try:
+            # 서비스 계층에 실제 로그인 로직 위임
             member = member_service.login(user_id, password)
 
+            # 세션에 로그인 정보 저장
             session["user_id"] = member["id"]
             session["user_name"] = member["name"]
+            # 현재 DB에는 관리자 컬럼이 없어서 기본 False / 'T' 체크만 해둠
             session["is_admin"] = (member.get("is_admin") == "T")
-            session.permanent = True
+            session.permanent = True  # remember-like 효과
 
             flash(f"{member['name']}님 로그인 완료", "success")
             return redirect(url_for("main.index"))
@@ -37,6 +40,7 @@ def login():
         except member_service.MemberServiceError as e:
             flash(str(e), "danger")
 
+    # GET 요청이거나 에러가 난 경우
     return render_template("auth/login.html")
 
 

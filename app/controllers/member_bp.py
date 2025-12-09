@@ -2,7 +2,7 @@
 # 2025.12.05 이태호
 # ----------------------------------------------------------
 """
-회원 관리 Blueprint (회원가입, 회원정보 수정)
+회원 관리 Blueprint (회원가입, 회원정보 조회/수정)
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app.services import member_service
@@ -20,7 +20,7 @@ def register():
             "name": request.form.get("name").strip(),
             "address": request.form.get("address").strip(),
             "sex": request.form.get("sex"),
-            "birthday": request.form.get("birthday")
+            "birthday": request.form.get("birthday"),
         }
 
         try:
@@ -52,7 +52,7 @@ def profile_edit():
             "password": request.form.get("password"),
             "address": request.form.get("address"),
             "sex": request.form.get("sex"),
-            "birthday": request.form.get("birthday")
+            "birthday": request.form.get("birthday"),
         }
 
         try:

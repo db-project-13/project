@@ -1,34 +1,11 @@
 {% extends "layout/base.html" %}
 
-{% block title %}홈 - Team13-Phase4{% endblock %}
+{% block title %}{{ theme_name }} 목록 - Team13-Phase4{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h1 class="mb-4">Team13-Phase4 웹 애플리케이션</h1>
-        
-        <!-- 테마별 링크 -->
-        {% if theme_stats %}
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">테마별 콘텐츠</h5>
-                <div class="btn-group" role="group">
-                    <a href="{{ url_for('content.movies') }}" class="btn btn-outline-primary">
-                        영화 <span class="badge bg-primary">{{ theme_stats.get('Movie', 0) }}</span>
-                    </a>
-                    <a href="{{ url_for('content.games') }}" class="btn btn-outline-success">
-                        게임 <span class="badge bg-success">{{ theme_stats.get('Video Game', 0) }}</span>
-                    </a>
-                    <a href="{{ url_for('content.books') }}" class="btn btn-outline-info">
-                        도서 <span class="badge bg-info">{{ theme_stats.get('Book', 0) }}</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- 콘텐츠 목록 -->
-        <h2 class="mb-3">전체 콘텐츠 목록</h2>
+        <h2 class="mb-4">{{ theme_name }} 목록</h2>
         
         {% if contents %}
             <div class="row">
@@ -46,9 +23,6 @@
                                 <small class="text-muted">제작사: {{ content.prodname }}</small>
                                 {% if content.sname %}
                                 <br><small class="text-muted">시리즈: {{ content.sname }}</small>
-                                {% endif %}
-                                {% if content.mediatype %}
-                                <br><span class="badge bg-secondary">{{ content.mediatype }}</span>
                                 {% endif %}
                             </p>
                             {% if content.avgrating %}
@@ -98,7 +72,7 @@
             {% endif %}
         {% else %}
             <div class="alert alert-info" role="alert">
-                등록된 콘텐츠가 없습니다.
+                등록된 {{ theme_name }} 콘텐츠가 없습니다.
             </div>
         {% endif %}
     </div>

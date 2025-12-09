@@ -47,11 +47,11 @@ def search_by_title(conn, search_term: str) -> List[Dict[str, Any]]:
 
 def search_by_tag(conn, tag: str) -> List[Dict[str, Any]]:
     """
-    태그로 콘텐츠 검색
+    태그로 콘텐츠 검색 (부분 일치, 대소문자 구분 없음)
     
     Args:
         conn: Oracle DB 연결 객체
-        tag: 태그명 (정확히 일치)
+        tag: 태그명 (부분 일치 검색)
     
     Returns:
         검색된 콘텐츠 리스트
@@ -61,6 +61,7 @@ def search_by_tag(conn, tag: str) -> List[Dict[str, Any]]:
     sql = """
         SELECT DISTINCT c.ContentID, c.Title, 
                TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
+               c.ReleaseDate as ReleaseDateRaw,
                p.Prodname, s.SName,
                (SELECT ROUND(AVG(r.Rating), 1) FROM RATING r WHERE r.CID = c.ContentID) as AvgRating,
                (SELECT COUNT(*) FROM RATING r WHERE r.CID = c.ContentID) as ReviewCount
@@ -69,7 +70,7 @@ def search_by_tag(conn, tag: str) -> List[Dict[str, Any]]:
         LEFT JOIN SERIES s ON c.SID = s.SeriesID
         JOIN TAG_TO tt ON c.ContentID = tt.CID
         JOIN TAG t ON tt.TCode = t.TagCode
-        WHERE t.Tag = :tag
+        WHERE UPPER(t.Tag) LIKE UPPER('%' || :tag || '%')
         ORDER BY c.ReleaseDate DESC
     """
     
@@ -89,7 +90,7 @@ def search_by_title_and_tag(conn, search_term: str, tag: str) -> List[Dict[str, 
     Args:
         conn: Oracle DB 연결 객체
         search_term: 검색어 (콘텐츠 제목의 일부)
-        tag: 태그명 (정확히 일치)
+        tag: 태그명 (부분 일치 검색)
     
     Returns:
         검색된 콘텐츠 리스트
@@ -99,6 +100,7 @@ def search_by_title_and_tag(conn, search_term: str, tag: str) -> List[Dict[str, 
     sql = """
         SELECT DISTINCT c.ContentID, c.Title, 
                TO_CHAR(c.ReleaseDate, 'YYYY-MM-DD') as ReleaseDate,
+               c.ReleaseDate as ReleaseDateRaw,
                p.Prodname, s.SName,
                (SELECT ROUND(AVG(r.Rating), 1) FROM RATING r WHERE r.CID = c.ContentID) as AvgRating,
                (SELECT COUNT(*) FROM RATING r WHERE r.CID = c.ContentID) as ReviewCount
@@ -108,7 +110,7 @@ def search_by_title_and_tag(conn, search_term: str, tag: str) -> List[Dict[str, 
         JOIN TAG_TO tt ON c.ContentID = tt.CID
         JOIN TAG t ON tt.TCode = t.TagCode
         WHERE UPPER(c.Title) LIKE UPPER('%' || :search_term || '%')
-          AND t.Tag = :tag
+          AND UPPER(t.Tag) LIKE UPPER('%' || :tag || '%')
         ORDER BY c.ReleaseDate DESC
     """
     

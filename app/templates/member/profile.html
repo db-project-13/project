@@ -1,0 +1,57 @@
+{% extends "layout/base.html" %} {% block title %}마이페이지{% endblock %} {%
+block content %}
+<div class="container py-4">
+  <h1 class="mb-4">마이페이지</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %} {% for category, message in messages %}
+  <div
+    class="alert alert-{{ category }} alert-dismissible fade show"
+    role="alert"
+  >
+    {{ message }}
+    <button
+      type="button"
+      class="btn-close"
+      data-bs-dismiss="alert"
+      aria-label="Close"
+    ></button>
+  </div>
+  {% endfor %} {% endif %} {% endwith %}
+
+  <div class="card">
+    <div class="card-header">회원 정보</div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-3">아이디</dt>
+        <dd class="col-sm-9">{{ member.id }}</dd>
+
+        <dt class="col-sm-3">이름</dt>
+        <dd class="col-sm-9">{{ member.name }}</dd>
+
+        <dt class="col-sm-3">주소</dt>
+        <dd class="col-sm-9">
+          {{ member.address if member.address else "-" }}
+        </dd>
+
+        <dt class="col-sm-3">성별</dt>
+        <dd class="col-sm-9">
+          {% if member.sex == "M" %} 남성 {% elif member.sex == "F" %} 여성 {%
+          else %} - {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">생년월일</dt>
+        <dd class="col-sm-9">
+          {% if member.birthday %} {{ member.birthday.strftime('%Y-%m-%d') }} {%
+          else %} - {% endif %}
+        </dd>
+      </dl>
+    </div>
+    <div class="card-footer text-end">
+      <a href="{{ url_for('member.profile_edit') }}" class="btn btn-primary">
+        회원정보 수정
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

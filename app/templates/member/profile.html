@@ -48,6 +48,12 @@ block content %}
       </dl>
     </div>
     <div class="card-footer text-end">
+      <a
+        href="{{ url_for('member.my_reviews') }}"
+        class="btn btn-outline-secondary me-2"
+      >
+        내가 작성한 리뷰 보기
+      </a>
       <a href="{{ url_for('member.profile_edit') }}" class="btn btn-primary">
         회원정보 수정
       </a>

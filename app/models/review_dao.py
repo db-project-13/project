@@ -1,4 +1,6 @@
 # 12.09 anton061311
+# 12.10 anotn061311 리뷰 조회 DAO 추가. 
+#       def get_review_by_member()
 # ----------------------------------------------------
 
 from typing import Any, Dict, Optional
@@ -81,6 +83,23 @@ def get_review_for_update(conn, review_member_id: str, content_id: int) -> Optio
         "cid": row[1],
         "likes": row[2],
     }
+
+def get_reviews_by_member(conn, member_id: str):
+    cursor = conn.cursor()
+    sql = """
+        SELECT r.MID, r.CID, r.Rating, r.Comm, r.Likes
+        FROM RATING r
+        WHERE r.MID = :mid
+        ORDER BY r.CID DESC
+    """
+    cursor.execute(sql, {"mid": member_id})
+
+    columns = [col[0].lower() for col in cursor.description]
+    rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    cursor.close()
+    return rows
+
 
 
 def update_likes(conn, review_member_id: str, content_id: int, new_likes: int) -> None:

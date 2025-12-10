@@ -1,0 +1,25 @@
+{% extends "layout/base.html" %} {% block title %}내 리뷰 목록{% endblock %} {%
+block content %}
+<div class="container py-4">
+  <h2 class="mb-4">내가 작성한 리뷰</h2>
+
+  {% if reviews and reviews|length > 0 %}
+  <ul class="list-group">
+    {% for r in reviews %}
+    <li class="list-group-item">
+      <h5 class="mb-1">컨텐츠 ID: {{ r.cid }}</h5>
+      <p class="mb-1">평점: {{ r.rating }}</p>
+      <p class="mb-1">내용: {{ r.comm }}</p>
+      <small>좋아요: {{ r.likes }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>아직 작성한 리뷰가 없습니다.</p>
+  {% endif %}
+
+  <a href="{{ url_for('member.profile') }}" class="btn btn-secondary mt-3">
+    돌아가기
+  </a>
+</div>
+{% endblock %}

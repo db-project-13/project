@@ -1,5 +1,6 @@
 # ----------------------------------------------------------
-# 2025.12.05 이태호
+# 2025.12.05 anton061311
+# 2025.12.10 anton061311 마이페이지 라우트 추가
 # ----------------------------------------------------------
 """
 회원 관리 Blueprint (회원가입, 회원정보 조회/수정)
@@ -7,8 +8,18 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app.services import member_service
 from app.utils.decorators import login_required
+from app.services import review_service
 
 member_bp = Blueprint("member", __name__, url_prefix="/member")
+
+@member_bp.route("/myreviews")
+@login_required
+def my_reviews():
+    user_id = session.get("user_id")
+    reviews = review_service.get_my_reviews(user_id)
+    return render_template("member/my_reviews.html", reviews=reviews)
+
+
 
 
 @member_bp.route("/register", methods=["GET", "POST"])

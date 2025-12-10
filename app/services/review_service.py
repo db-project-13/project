@@ -1,4 +1,6 @@
 # 12/09 anton061311
+# 12/10 anton061311 서비스 계층 추가
+# def get_my_review(member_di: str)
 # ----------------------------------------------------
 from app.db import db
 from app.models import review_dao
@@ -103,6 +105,13 @@ def create_review(member_id: str, content_id: int, rating: int, comment: str) ->
                 raise ReviewAlreadyExistsError("이미 이 콘텐츠에 작성한 리뷰가 있습니다.")
             raise
 
+
+def get_my_reviews(member_id: str):
+    conn = db.get_db()
+    if conn is None:
+        raise ReviewServiceError("데이터베이스 연결에 실패했습니다. 관리자에게 문의하세요.")
+
+    return review_dao.get_reviews_by_member(conn, member_id)
 
 def like_review(actor_member_id: str, review_member_id: str, content_id: int) -> None:
     """

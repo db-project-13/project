@@ -1,0 +1,16 @@
+<!--12/09 anton061311 내가 작성한 리뷰 생성-->
+{% extends "base.html" %} {% block content %}
+<h2>내가 작성한 리뷰</h2>
+
+{% if reviews %}
+<ul>
+  {% for r in reviews %}
+  <li>
+    <strong>{{ r.title }}</strong> ({{ r.category }}) <br />평점: {{ r.rating
+    }}점 <br />내용: {{ r.comm }} <br />좋아요: {{ r.likes }}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>작성한 리뷰가 없습니다.</p>
+{% endif %} {% endblock %}

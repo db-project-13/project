@@ -1,105 +1,162 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Team13-Phase4{% endblock %}</title>
-    
+
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+
     {% block extra_css %}{% endblock %}
-</head>
-<body>
+  </head>
+  <body>
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">Team13-Phase4</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.index') }}">홈</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('content.search') }}">콘텐츠 검색</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    {% if session.get('user_id') %}
-                        <li class="nav-item">
-                            <span class="navbar-text me-3">
-                                안녕하세요, <strong>{{ session.get('user_id') }}</strong>님
-                                {% if session.get('is_admin') %}
-                                    <span class="badge bg-danger">관리자</span>
-                                {% endif %}
-                            </span>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('member.edit_profile') }}">회원정보 수정</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('content.search') }}">리뷰 등록</a>
-                        </li>
-                        {% if session.get('is_admin') %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('admin.dashboard') }}">관리자</a>
-                            </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.logout') }}">로그아웃</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}">로그인</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('member.register') }}">회원가입</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
+      <div class="container">
+        <a class="navbar-brand" href="{{ url_for('main.index') }}"
+          >Team13-Phase4</a
+        >
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('main.index') }}">홈</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('content.movies') }}"
+                >영화</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('content.games') }}">게임</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('content.books') }}">도서</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('content.search') }}"
+                >콘텐츠 검색</a
+              >
+            </li>
+          </ul>
+          <ul class="navbar-nav">
+            {% if session.get('user_id') %}
+
+            <!-- 인사 표시 -->
+            <li class="nav-item">
+              <span class="navbar-text me-3">
+                안녕하세요, <strong>{{ session.get('user_id') }}</strong>님 {%
+                if session.get('is_admin') %}
+                <span class="badge bg-danger">관리자</span>
+                {% endif %}
+              </span>
+            </li>
+
+            <!-- 🔵 마이페이지 링크 추가 (새로 추가한 부분) -->
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('member.profile') }}"
+                >마이페이지</a
+              >
+            </li>
+
+            <!-- 기존 회원정보 수정 -->
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('member.profile_edit') }}"
+                >회원정보 수정</a
+              >
+            </li>
+
+            <!-- 리뷰 등록 (기존 유지) -->
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('content.search') }}"
+                >리뷰 등록</a
+              >
+            </li>
+
+            {% if session.get('is_admin') %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('admin.dashboard') }}"
+                >관리자</a
+              >
+            </li>
+            {% endif %}
+
+            <!-- 로그아웃 -->
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('auth.logout') }}"
+                >로그아웃</a
+              >
+            </li>
+
+            {% else %}
+            <!-- 비로그인 상태 -->
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('auth.login') }}">로그인</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('member.register') }}"
+                >회원가입</a
+              >
+            </li>
+            {% endif %}
+          </ul>
         </div>
+      </div>
     </nav>
 
     <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container mt-3">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else ('success' if category == 'success' else 'info') }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %}
+    <div class="container mt-3">
+      {% for category, message in messages %}
+      <div
+        class="alert alert-{{ 'danger' if category == 'error' else ('success' if category == 'success' else 'info') }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
 
     <!-- Main Content -->
-    <main class="container my-4">
-        {% block content %}{% endblock %}
-    </main>
+    <main class="container my-4">{% block content %}{% endblock %}</main>
 
     <!-- Footer -->
     <footer class="bg-dark text-light text-center py-3 mt-5">
-        <div class="container">
-            <p class="mb-0">&copy; 2024 Team13-Phase4. All rights reserved.</p>
-        </div>
+      <div class="container">
+        <p class="mb-0">&copy; 2024 Team13-Phase4. All rights reserved.</p>
+      </div>
     </footer>
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
 
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

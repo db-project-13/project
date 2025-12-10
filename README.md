@@ -9,6 +9,172 @@ Phase 3 콘솔 애플리케이션을 Flask 기반 웹 애플리케이션으로 �
 - **데이터베이스**: Oracle Database 21c
 - **목표**: Phase 3의 필수 기능 탑재 및 트랜잭션을 활용한 사용자 동시성 제어를 지원하는 데이터베이스 웹 사이트 구축
 
+## 🛠️ 제작 환경
+
+### 기술 스택
+
+- **Backend**: Flask 3.0.0 (Python)
+- **Frontend**: Jinja2, Bootstrap 5, JavaScript
+- **Database**: Oracle Database 21c
+- **Database Driver**: oracledb 3.4.0
+- **기타**: python-dotenv 1.0.0
+
+### 시스템 요구사항
+
+- Python 3.11 이상
+- Oracle Database 19c 이상 (로컬 또는 Docker)
+- Oracle Instant Client (oracledb 사용 시, 선택사항 - Thin 모드 사용 가능)
+
+## 🚀 실행 방법
+
+### 1. 프로젝트 클론 및 가상 환경 설정
+
+```bash
+# 가상 환경 생성
+python -m venv venv
+
+# 가상 환경 활성화
+# macOS/Linux:
+source venv/bin/activate
+# Windows:
+venv\Scripts\activate
+```
+
+### 2. 의존성 설치
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. 환경 변수 설정
+
+프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 다음 내용을 작성하세요:
+
+```bash
+# Flask 환경 설정
+FLASK_ENV=development
+FLASK_DEBUG=True
+SECRET_KEY=your-secret-key-here-change-in-production
+
+# 데이터베이스 연결 정보
+DB_DSN=localhost:1521/orcl
+DB_USER=your-db-username
+DB_PASSWORD=your-db-password
+
+# Connection Pool 설정 (선택사항)
+DB_POOL_MIN=2
+DB_POOL_MAX=10
+```
+
+**주의사항**:
+- `.env` 파일은 Git에 커밋되지 않습니다 (`.gitignore`에 포함됨)
+- 프로덕션 환경에서는 `SECRET_KEY`를 강력한 랜덤 문자열로 변경하세요
+- `DB_DSN` 형식: `호스트:포트/서비스명` (예: `localhost:1521/orcl`)
+
+### 4. 데이터베이스 초기화
+
+데이터베이스 테이블 생성 및 초기 데이터 삽입을 위해 `init_db.py`를 실행합니다:
+
+```bash
+python app/init_db.py
+```
+
+이 스크립트는 다음 작업을 수행합니다:
+1. `app/DBreset_table.sql` 실행 - 테이블 및 시퀀스 생성
+2. `app/DBreset_insert.sql` 실행 - 초기 데이터 삽입
+
+**실행 전 확인사항**:
+- `.env` 파일에 올바른 데이터베이스 연결 정보가 설정되어 있어야 합니다
+- 실행 시 확인 메시지가 표시되며, `y`를 입력해야 진행됩니다
+- 기존 테이블이 있는 경우 데이터가 초기화될 수 있으므로 주의하세요
+
+**init_db 실행 시 필요한 .env 설정**:
+```bash
+# 필수 항목
+DB_USER=your-db-username          # 데이터베이스 사용자명
+DB_PASSWORD=your-db-password      # 데이터베이스 비밀번호
+DB_DSN=localhost:1521/orcl        # 데이터베이스 연결 문자열
+
+# 선택 항목 (init_db에서는 사용하지 않지만, 애플리케이션 실행 시 필요)
+FLASK_ENV=development
+FLASK_DEBUG=True
+SECRET_KEY=your-secret-key-here
+DB_POOL_MIN=2
+DB_POOL_MAX=10
+```
+
+### 5. 애플리케이션 실행
+
+```bash
+python run.py
+```
+
+애플리케이션이 실행되면 다음 주소로 접속할 수 있습니다:
+```
+http://localhost:8000
+```
+
+## 🎯 주요 기능
+
+### 인증 시스템
+- **회원가입**: 새로운 사용자 등록
+- **로그인/로그아웃**: 세션 기반 인증
+- **세션 관리**: 24시간 세션 유지
+
+### 회원 관리
+- **회원정보 조회**: 마이페이지에서 본인 정보 확인
+- **회원정보 수정**: 비밀번호, 주소, 성별, 생년월일 수정
+- **작성한 리뷰 조회**: 본인이 작성한 모든 리뷰 목록 확인
+
+### 콘텐츠 관리
+- **메인 페이지**: 전체 콘텐츠 목록 표시 (페이지네이션 지원)
+- **테마별 분류**: 영화, 게임, 도서별 콘텐츠 목록 조회
+  - 영화: `/content/movies`
+  - 게임: `/content/games`
+  - 도서: `/content/books`
+- **콘텐츠 검색**: 제목 및 태그 기반 검색
+- **콘텐츠 상세**: 제목, 출시일, 제작사, 시리즈, 태그, 구매처, 리뷰 통계 등 상세 정보 표시
+
+### 리뷰 시스템
+- **리뷰 작성**: 콘텐츠에 대한 평점(1-5점) 및 코멘트 작성
+- **리뷰 수정**: 본인이 작성한 리뷰 수정
+- **리뷰 삭제**: 본인이 작성한 리뷰 삭제
+- **좋아요 기능**: 다른 사용자의 리뷰에 좋아요 (동시성 제어 포함)
+- **리뷰 통계**: 평균 평점, 평점 분포, 리뷰 수 표시
+
+### 관리자 기능
+- **대시보드**: 관리자 전용 메인 페이지
+- **회원 관리**: 일반 회원 목록 조회 및 삭제
+- **제작사 관리**: 제작사 추가/수정/삭제
+- **콘텐츠 관리**: 콘텐츠 추가/수정/삭제, 태그 연결, 구매처 관리
+- **시리즈 관리**: 시리즈 추가/수정/삭제
+- **태그 관리**: 태그 추가/삭제, 카테고리별 관리
+
+## ⚠️ 유의 사항
+
+### 데이터베이스 연결
+- Oracle Database에 대한 접근 권한이 필요합니다
+- `DB_DSN` 형식이 올바른지 확인하세요: `호스트:포트/서비스명`
+- 방화벽 설정으로 인해 데이터베이스 연결이 차단될 수 있습니다
+
+### 보안
+- 프로덕션 환경에서는 반드시 `SECRET_KEY`를 변경하세요
+- `.env` 파일에 실제 비밀번호를 저장하므로 파일 권한을 적절히 설정하세요
+- 데이터베이스 비밀번호는 강력한 비밀번호를 사용하세요
+
+### 데이터베이스 초기화
+- `init_db.py` 실행 시 기존 테이블과 데이터가 삭제될 수 있습니다
+- 프로덕션 환경에서는 데이터베이스 백업을 먼저 수행하세요
+- `init_db.py`는 개발/테스트 환경에서만 사용하세요
+
+### 동시성 제어
+- 리뷰 작성 시 동일 사용자의 중복 리뷰는 방지됩니다
+- 좋아요 기능은 `SELECT ... FOR UPDATE`를 사용하여 동시성 제어가 구현되어 있습니다
+
+### 세션 관리
+- 기본 세션 유지 시간은 24시간입니다
+- 브라우저를 닫아도 세션이 유지됩니다 (permanent session)
+
 ## 🏗️ 프로젝트 구조
 
 ```
@@ -16,246 +182,68 @@ project/
 ├── app/                          # Flask 애플리케이션 모듈
 │   ├── __init__.py              # Flask 앱 팩토리
 │   ├── config.py                # 설정 파일 (Development/Production)
+│   ├── db.py                    # 데이터베이스 연결 관리
+│   ├── init_db.py               # 데이터베이스 초기화 스크립트
 │   ├── controllers/             # Blueprint 컨트롤러 (URL 라우팅)
 │   │   ├── main_bp.py          # 메인 페이지
 │   │   ├── auth_bp.py          # 인증 (로그인/로그아웃)
 │   │   ├── member_bp.py        # 회원 관리
 │   │   ├── content_bp.py       # 콘텐츠 및 리뷰
 │   │   └── admin_bp.py         # 관리자 기능
-│   ├── services/                # 비즈니스 로직 계층 (추후 구현)
-│   ├── models/                  # 데이터 접근 계층 (추후 구현)
+│   ├── services/                # 비즈니스 로직 계층
+│   │   ├── member_service.py   # 회원 서비스
+│   │   ├── review_service.py   # 리뷰 서비스
+│   │   └── content_service.py  # 콘텐츠 서비스
+│   ├── models/                  # 데이터 접근 계층
+│   │   ├── member_dao.py       # 회원 DAO
+│   │   ├── review_dao.py       # 리뷰 DAO
+│   │   └── content_dao.py     # 콘텐츠 DAO
 │   ├── utils/                   # 유틸리티 함수
 │   │   └── decorators.py       # @login_required, @admin_required
 │   ├── templates/               # Jinja2 템플릿 (View 계층)
 │   │   ├── layout/
 │   │   │   └── base.html       # 공통 레이아웃
-│   │   ├── main/                # 메인 페이지
-│   │   ├── auth/                # 로그인/회원가입
-│   │   ├── member/              # 회원 정보
-│   │   ├── content/             # 콘텐츠 및 리뷰
-│   │   └── admin/               # 관리자 기능
+│   │   ├── main/               # 메인 페이지
+│   │   ├── auth/               # 로그인/회원가입
+│   │   ├── member/             # 회원 정보
+│   │   ├── content/            # 콘텐츠 및 리뷰
+│   │   └── admin/              # 관리자 기능
 │   └── static/                  # 정적 파일 (CSS, JS)
 │       ├── css/
 │       └── js/
-├── plans/                       # 프로젝트 계획 및 문서화 자료
-│   ├── mid_plan.md              # 최종 구현 계획서
-│   ├── team13-phase3-readme.md  # Phase 3 분석 문서
-│   └── archive/                 # 히스토리 문서
-├── venv/                        # Python 가상 환경 (Git 제외)
 ├── requirements.txt             # Python 의존성
 ├── run.py                       # 애플리케이션 진입점
-├── .env.sample                  # 환경 변수 설정 예제 파일
-├── .gitignore                   # Git 제외 파일 목록
 └── README.md                    # 프로젝트 설명 (이 파일)
 ```
 
-## ✅ 현재 구현 상태
-
-### 완료된 작업 (프론트엔드 구조)
-
-#### 1. 프로젝트 기본 구조
-- ✅ Flask 앱 팩토리 함수 (`app/__init__.py`)
-- ✅ 설정 파일 (`app/config.py` - Development/Production 분리)
-- ✅ 공통 레이아웃 템플릿 (`templates/layout/base.html`)
-- ✅ Bootstrap 5 적용 및 동적 네비게이션 바
-- ✅ Flash 메시지 표시 영역
-- ✅ 유틸리티 데코레이터 (`@login_required`, `@admin_required`)
-
-#### 2. Blueprint 및 라우팅 (5개)
-- ✅ `main_bp.py` - 메인 페이지 (`/`)
-- ✅ `auth_bp.py` - 로그인/로그아웃 (`/auth/login`, `/auth/logout`)
-- ✅ `member_bp.py` - 회원가입/회원정보 수정 (`/member/register`, `/member/profile/edit`)
-- ✅ `content_bp.py` - 콘텐츠 검색/상세/리뷰 등록 (`/content/*`)
-- ✅ `admin_bp.py` - 관리자 기능 (`/admin/*`)
-
-#### 3. 템플릿 파일 (15개)
-- ✅ `main/index.html` - 메인 페이지
-- ✅ `auth/login.html` - 로그인
-- ✅ `member/register.html` - 회원가입
-- ✅ `member/profile_edit.html` - 회원정보 수정
-- ✅ `content/search.html` - 콘텐츠 검색
-- ✅ `content/search_results.html` - 검색 결과
-- ✅ `content/detail.html` - 콘텐츠 상세
-- ✅ `content/review_form.html` - 리뷰 등록
-- ✅ `admin/dashboard.html` - 관리자 대시보드
-- ✅ `admin/producers.html` - 제작사 관리
-- ✅ `admin/contents.html` - 콘텐츠 관리
-- ✅ `admin/series.html` - 시리즈 관리
-- ✅ `admin/query_menu.html` - 쿼리 메뉴
-- ✅ `admin/query_result.html` - 쿼리 결과
-
-### ⏳ 미구현 작업 (백엔드 로직)
-
-#### 1. 데이터베이스 계층
-- ❌ `app/models/database.py` - Connection Pool 구현
-- ❌ `app/models/member_dao.py` - 회원 DAO
-- ❌ `app/models/content_dao.py` - 콘텐츠 DAO
-- ❌ `app/models/query_dao.py` - 쿼리 DAO
-- ❌ `app/models/admin_dao.py` - 관리자 DAO
-
-#### 2. 서비스 계층
-- ❌ `app/services/member_service.py` - 회원 서비스
-- ❌ `app/services/review_service.py` - 리뷰 서비스
-- ❌ `app/services/admin_service.py` - 관리자 서비스
-
-#### 3. 추가 기능
-- ❌ 회원정보 조회 페이지 (마이페이지)
-- ❌ 태그 관리 페이지
-- ❌ 테마별 분류 기능 (영화/게임/도서)
-- ❌ 메인 페이지 콘텐츠 목록 표시
-- ❌ 일반 사용자 콘텐츠 등록 기능
-- ❌ 동시성 제어 구현
-
-## 🚀 실행 방법
-
-### 1. 사전 요구사항
-- Python 3.11 이상 (oracledb 요구사항)
-- Oracle Database 19c or 21c 등 (로컬 또는 Docker)
-- Oracle Instant Client (oracledb 사용 시, 선택사항 - Thin 모드 사용 가능)
-
-### 2. 가상 환경 생성 및 활성화
-```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-```
-
-### 3. 의존성 설치
-```bash
-pip install -r requirements.txt
-```
-
-### 4. 환경 변수 설정 (권장사항)
-`.env.sample` 파일을 참고하여 `.env` 파일을 생성하세요:
-
-```bash
-# .env.sample 파일을 복사하여 .env 파일 생성
-cp .env.sample .env
-
-# .env 파일을 열어 실제 값으로 수정
-# - DB_USER: 실제 데이터베이스 사용자명
-# - DB_PASSWORD: 실제 데이터베이스 비밀번호
-# - SECRET_KEY: 프로덕션에서는 강력한 랜덤 문자열로 변경
-```
-
-`.env` 파일 예시:
-```bash
-FLASK_ENV=development
-FLASK_DEBUG=True
-SECRET_KEY=your-secret-key-here
-DB_DSN=localhost:1521/orcl
-DB_USER=your-db-username
-DB_PASSWORD=your-db-password
-DB_POOL_MIN=2
-DB_POOL_MAX=10
-```
-
-**주의**: `.env` 파일은 Git에 커밋되지 않습니다 (`.gitignore`에 포함됨). 실제 비밀번호나 민감한 정보를 포함하므로 주의하세요.
-
-### 4-1. db초기화
-```bash
-python app\init_db.py
-```
-
-### 5. 애플리케이션 실행
-```bash
-python run.py
-```
-
-### 6. 브라우저에서 접속
-```
-http://localhost:8000
-```
-
-## 🎯 주요 기능
-
-### 현재 구현된 기능 (템플릿/라우팅)
-- **인증**: 로그인/로그아웃 (임시 구현)
-- **회원 관리**: 회원가입, 회원정보 수정 (템플릿만 구현)
-- **콘텐츠 검색**: 콘텐츠 검색 및 리뷰 등록 (템플릿만 구현)
-- **관리자 기능**: 제작사/콘텐츠/시리즈 관리, 쿼리 실행 (템플릿만 구현)
-
-### 계획된 기능 (미구현)
-- 실제 데이터베이스 연동
-- 회원정보 조회 페이지 (마이페이지)
-- 태그 관리 페이지
-- 테마별 콘텐츠 분류 (영화/게임/도서)
-- 메인 페이지 콘텐츠 목록 표시
-- 일반 사용자 콘텐츠 등록 기능
-- 동시성 제어 (트랜잭션, 잠금)
-
-## 📚 문서 구조
-
-프로젝트의 상세한 계획 및 문서는 `plans/` 폴더에 있습니다:
-
-- **`plans/mid_plan.md`** - 최종 구현 계획서
-  - 현재 구현 상태 상세 분석
-  - 새로운 요구사항 분석
-  - 우선순위별 구현 계획
-  - 데이터베이스 스키마 활용 방안
-  - 동시성 제어 구현 방안
-
-- **`plans/team13-phase3-readme.md`** - Phase 3 분석 문서
-  - Phase 3 콘솔 애플리케이션 구조 및 로직 분석
-  - Phase 4 전환 시 참고 자료
-
-- **`plans/archive/`** - 히스토리 문서
-  - 개발 과정에서 생성된 중간 문서들
-
-자세한 내용은 [`plans/README.md`](plans/README.md)를 참고하세요.
-
 ## 🔧 개발 가이드
 
-### 폴더 구조 확인
-프로젝트의 전체 구조는 위의 "프로젝트 구조" 섹션을 참고하세요.
+### 데이터베이스 접근 방법
 
-### 라우팅 확인
-각 Blueprint 파일(`app/controllers/*_bp.py`)에서 URL 라우팅을 확인할 수 있습니다.
+컨트롤러에서 데이터베이스 연결을 사용할 때:
 
-### 템플릿 확인
-모든 템플릿은 `app/templates/` 디렉토리에 있으며, `layout/base.html`을 상속받습니다.
-
-### 코드 스타일
-- Python 코드는 PEP 8 스타일 가이드를 따릅니다.
-- 템플릿 파일은 Jinja2 문법을 사용합니다.
-- HTML은 Bootstrap 5를 사용합니다.
-
-### 데이터베이스 접근
-_bp.py 파일에
 ```python
 from app.db import db
+
+conn = db.get_db()
+cursor = conn.cursor()
+# ... 쿼리 실행 ...
+cursor.close()
 ```
-추가 후 함수 내부에서
+
+트랜잭션이 필요한 경우:
+
 ```python
-  conn = db.get_db()
-  cursor = conn.cursor()
+from app.db import db
+
+with db.transaction() as conn:
+    cursor = conn.cursor()
+    # ... 쿼리 실행 ...
+    cursor.close()
+    # 자동으로 commit (예외 발생 시 rollback)
 ```
-선언하여 사용
 
-## 📋 다음 단계
-
-### 높은 우선순위
-1. 데이터베이스 연결 구현 (`app/models/database.py`)
-2. 회원정보 조회 페이지 (`/member/profile`)
-3. 태그 관리 페이지 (`/admin/tags`)
-4. 메인 페이지 콘텐츠 목록 표시
-
-### 중간 우선순위
-5. DAO 계층 구현 (`app/models/*_dao.py`)
-6. Service 계층 구현 (`app/services/*_service.py`)
-7. 테마별 분류 기능 (영화/게임/도서)
-8. 일반 사용자 콘텐츠 등록 기능
-
-### 낮은 우선순위
-9. 동시성 제어 구현 (트랜잭션, 잠금)
-10. 유틸리티 함수 구현 (`app/utils/validators.py`)
-
-자세한 구현 계획은 [`plans/mid_plan.md`](plans/mid_plan.md)를 참고하세요.
-
-## 👥 팀 정보
-
-- **팀명**: Team13
-- **프로젝트**: Phase 4 - Flask 웹 애플리케이션
-
----
-
-**마지막 업데이트**: 2025-11-29
+### 코드 스타일
+- Python 코드는 PEP 8 스타일 가이드를 따릅니다
+- 템플릿 파일은 Jinja2 문법을 사용합니다
+- HTML은 Bootstrap 5를 사용합니다

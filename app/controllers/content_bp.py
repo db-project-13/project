@@ -583,26 +583,34 @@ def search():
     콘텐츠 검색 페이지 및 검색 처리
 
     GET: 검색 폼 표시
-    POST: 검색 결과 표시 (추후 ReviewService 연동)
+    POST: 검색 결과 표시
     """
     if request.method == "POST":
         search_term = request.form.get("search_term", "").strip()
+        tag = request.form.get("tag", "").strip() or None
 
-        if not search_term:
-            flash("검색어를 입력해주세요.", "error")
+        # 둘 다 비어있으면 에러
+        if not search_term and not tag:
+            flash("검색어 또는 태그를 입력해주세요.", "error")
             return render_template("content/search.html")
 
-        # TODO: ReviewService를 통한 콘텐츠 검색
-        results = []
-        flash(
-            f'"{search_term}" 검색 결과: {len(results)}개 (검색 기능은 추후 구현 예정)',
-            "info",
+        # ContentService를 통한 검색
+        from app.services import content_service
+        results = content_service.search_content(
+            search_term=search_term if search_term else None,
+            tag=tag
         )
+
+        if len(results) > 0:
+            flash(f"검색 결과: {len(results)}개", "success")
+        else:
+            flash("검색 결과가 없습니다.", "info")
 
         return render_template(
             "content/search_results.html",
             results=results,
             search_term=search_term,
+            tag=tag,
         )
 
     return render_template("content/search.html")
